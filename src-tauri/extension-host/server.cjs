@@ -79,7 +79,7 @@ function encodeFrame(opcode, data) {
 // ── Extension Host State ────────────────────────────────────────────────
 
 let host = null; // loaded lazily on first connection
-const HOST_PATH = path.join(__dirname, 'host.js');
+const HOST_PATH = path.join(__dirname, 'host.cjs');
 
 // ── WebSocket Connection Handler ────────────────────────────────────────
 
