@@ -22,7 +22,8 @@ try {
 	const sheet = createStyleSheet();
 	sheet.id = 'codiconStyles-fallback';
 	const iconsSS = getIconsStyleSheet(undefined);
-	sheet.textContent = iconsSS.getCSS();
+	const css = iconsSS.getCSS();
+	sheet.textContent = css;
 	iconsSS.onDidChange(() => {
 		sheet.textContent = iconsSS.getCSS();
 	});

@@ -18,8 +18,8 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         {
-          src: 'extensions/*',
-          dest: 'extensions',
+          src: 'extensions',
+          dest: '.',
         },
         {
           src: 'extensions-meta.json',

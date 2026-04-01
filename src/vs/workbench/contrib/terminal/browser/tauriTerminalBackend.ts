@@ -1,0 +1,361 @@
+/*---------------------------------------------------------------------------------------------
+ *  Tauri Terminal Backend for SideX
+ *  Bridges VSCode's terminal infrastructure to Tauri's PTY commands.
+ *--------------------------------------------------------------------------------------------*/
+
+import { Emitter } from '../../../../base/common/event.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
+import { isMacintosh, isWindows, OperatingSystem } from '../../../../base/common/platform.js';
+import { Registry } from '../../../../platform/registry/common/platform.js';
+import {
+	IProcessDataEvent,
+	IProcessProperty,
+	IProcessReadyEvent,
+	IShellLaunchConfig,
+	ITerminalBackend,
+	ITerminalChildProcess,
+	ITerminalLaunchError,
+	ITerminalProfile,
+	ITerminalBackendRegistry,
+	TerminalExtensions,
+	IProcessDetails,
+	IPtyHostLatencyMeasurement,
+	ITerminalsLayoutInfo,
+	ITerminalsLayoutInfoById,
+	ITerminalProcessOptions,
+	TitleEventSource,
+	TerminalIcon,
+	ProcessPropertyType,
+	IProcessPropertyMap,
+	ITerminalLaunchResult,
+} from '../../../../platform/terminal/common/terminal.js';
+import type { IProcessEnvironment } from '../../../../base/common/platform.js';
+import { IWorkbenchContribution } from '../../../common/contributions.js';
+import { ITerminalInstanceService, ITerminalService } from './terminal.js';
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
+import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+
+let _invoke: ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | undefined;
+let _listen: ((event: string, handler: (event: { payload: unknown }) => void) => Promise<() => void>) | undefined;
+
+async function ensureTauri(): Promise<boolean> {
+	if (_invoke && _listen) return true;
+	try {
+		const core = await import('@tauri-apps/api/core');
+		const events = await import('@tauri-apps/api/event');
+		_invoke = core.invoke;
+		_listen = events.listen as typeof _listen;
+		return true;
+	} catch (e) {
+		console.error('[SideX Terminal] Failed to load Tauri APIs:', e);
+		return false;
+	}
+}
+
+let nextPtyId = 1;
+
+class TauriPty extends Disposable implements ITerminalChildProcess {
+	readonly id: number;
+	readonly shouldPersist = false;
+
+	private readonly _onProcessData = this._register(new Emitter<IProcessDataEvent | string>());
+	readonly onProcessData = this._onProcessData.event;
+
+	private readonly _onProcessReady = this._register(new Emitter<IProcessReadyEvent>());
+	readonly onProcessReady = this._onProcessReady.event;
+
+	private readonly _onDidChangeProperty = this._register(new Emitter<IProcessProperty<any>>());
+	readonly onDidChangeProperty = this._onDidChangeProperty.event;
+
+	private readonly _onProcessExit = this._register(new Emitter<number | undefined>());
+	readonly onProcessExit = this._onProcessExit.event;
+
+	private _backendId: number | undefined;
+	private _unlisten: (() => void) | undefined;
+	private _unlistenExit: (() => void) | undefined;
+
+	constructor(
+		private readonly _shellLaunchConfig: IShellLaunchConfig,
+		private readonly _cwd: string,
+		private _cols: number,
+		private _rows: number,
+	) {
+		super();
+		this.id = nextPtyId++;
+	}
+
+	async start(): Promise<ITerminalLaunchError | ITerminalLaunchResult | undefined> {
+		const ok = await ensureTauri();
+		if (!ok || !_invoke || !_listen) {
+			return { message: 'Tauri APIs not available' };
+		}
+
+		try {
+			const shell = this._shellLaunchConfig.executable || undefined;
+
+			const dataBuffer: string[] = [];
+			let attached = false;
+
+			this._unlisten = await _listen('terminal-data', (event) => {
+				const payload = event.payload as { terminal_id: number; data: string };
+				if (this._backendId !== undefined && payload.terminal_id === this._backendId) {
+					if (attached) {
+						this._onProcessData.fire(payload.data);
+					} else {
+						dataBuffer.push(payload.data);
+					}
+				}
+			});
+
+			this._unlistenExit = await _listen('terminal-exit', (event) => {
+				const payload = event.payload as { terminal_id: number; exit_code: number };
+				if (this._backendId !== undefined && payload.terminal_id === this._backendId) {
+					this._onProcessExit.fire(payload.exit_code);
+				}
+			});
+
+			const backendId = await _invoke('terminal_spawn', {
+				shell: shell ?? null,
+				cwd: this._cwd || null,
+				env: null,
+			}) as number;
+			this._backendId = backendId;
+
+			if (this._cols && this._rows) {
+				await _invoke('terminal_resize', { terminalId: backendId, cols: this._cols, rows: this._rows });
+			}
+
+			attached = true;
+			for (const data of dataBuffer) {
+				this._onProcessData.fire(data);
+			}
+			dataBuffer.length = 0;
+
+			this._onProcessReady.fire({ pid: backendId, cwd: this._cwd, windowsPty: undefined });
+			return undefined;
+		} catch (e: any) {
+			console.error('[SideX Terminal] Failed to spawn:', e);
+			return { message: e?.message || 'Failed to spawn terminal' };
+		}
+	}
+
+	shutdown(immediate: boolean): void {
+		if (this._backendId !== undefined && _invoke) {
+			_invoke('terminal_kill', { terminalId: this._backendId }).catch(() => { });
+		}
+		this._unlisten?.();
+		this._unlistenExit?.();
+	}
+
+	input(data: string): void {
+		if (this._backendId !== undefined && _invoke) {
+			_invoke('terminal_write', { terminalId: this._backendId, data }).catch(() => { });
+		}
+	}
+
+	resize(cols: number, rows: number): void {
+		this._cols = cols;
+		this._rows = rows;
+		if (this._backendId !== undefined && _invoke) {
+			_invoke('terminal_resize', { terminalId: this._backendId, cols, rows }).catch(() => { });
+		}
+	}
+
+	acknowledgeDataEvent(_charCount: number): void { }
+	async processBinary(_data: string): Promise<void> { }
+	async getInitialCwd(): Promise<string> { return this._cwd; }
+	async getCwd(): Promise<string> { return this._cwd; }
+	sendSignal(_signal: string): void { }
+	clearBuffer(): void { }
+	async setUnicodeVersion(_version: '6' | '11'): Promise<void> { }
+
+	async refreshProperty<T extends ProcessPropertyType>(property: T): Promise<IProcessPropertyMap[T]> {
+		throw new Error(`Unhandled property: ${property}`);
+	}
+
+	async updateProperty<T extends ProcessPropertyType>(_property: T, _value: IProcessPropertyMap[T]): Promise<void> { }
+
+	override dispose(): void {
+		this.shutdown(true);
+		super.dispose();
+	}
+}
+
+class TauriTerminalBackend extends Disposable implements ITerminalBackend {
+	readonly remoteAuthority = undefined;
+	readonly isResponsive = true;
+
+	private readonly _whenReadyPromise: Promise<void>;
+	private _resolveReady!: () => void;
+
+	get whenReady(): Promise<void> { return this._whenReadyPromise; }
+
+	private readonly _onPtyHostUnresponsive = this._register(new Emitter<void>());
+	readonly onPtyHostUnresponsive = this._onPtyHostUnresponsive.event;
+	private readonly _onPtyHostResponsive = this._register(new Emitter<void>());
+	readonly onPtyHostResponsive = this._onPtyHostResponsive.event;
+	private readonly _onPtyHostRestart = this._register(new Emitter<void>());
+	readonly onPtyHostRestart = this._onPtyHostRestart.event;
+	private readonly _onDidRequestDetach = this._register(new Emitter<{ requestId: number; workspaceId: string; instanceId: number }>());
+	readonly onDidRequestDetach = this._onDidRequestDetach.event;
+
+	constructor() {
+		super();
+		this._whenReadyPromise = new Promise<void>(resolve => { this._resolveReady = resolve; });
+		this._init();
+	}
+
+	private async _init(): Promise<void> {
+		await ensureTauri();
+		this._resolveReady();
+	}
+
+	setReady(): void { this._resolveReady(); }
+
+	async createProcess(
+		shellLaunchConfig: IShellLaunchConfig,
+		cwd: string,
+		cols: number,
+		rows: number,
+		_unicodeVersion: '6' | '11',
+		_env: IProcessEnvironment,
+		_options: ITerminalProcessOptions,
+		_shouldPersist: boolean
+	): Promise<ITerminalChildProcess> {
+		if (!shellLaunchConfig.executable) {
+			const defaultShell = await this.getDefaultSystemShell();
+			shellLaunchConfig.executable = defaultShell;
+		}
+		return new TauriPty(shellLaunchConfig, cwd, cols, rows);
+	}
+
+	async attachToProcess(_id: number): Promise<ITerminalChildProcess | undefined> { return undefined; }
+	async attachToRevivedProcess(_id: number): Promise<ITerminalChildProcess | undefined> { return undefined; }
+	async listProcesses(): Promise<IProcessDetails[]> { return []; }
+	async getLatency(): Promise<IPtyHostLatencyMeasurement[]> { return []; }
+
+	async getDefaultSystemShell(_osOverride?: OperatingSystem): Promise<string> {
+		await ensureTauri();
+		if (_invoke) {
+			try {
+				const shell = await _invoke('get_default_shell') as string;
+				if (shell) return shell;
+			} catch { }
+		}
+		return '/bin/zsh';
+	}
+
+	async getProfiles(
+		_profiles: unknown,
+		_defaultProfile: unknown,
+		_includeDetectedProfiles?: boolean
+	): Promise<ITerminalProfile[]> {
+		const defaultShell = await this.getDefaultSystemShell();
+		const defaultName = defaultShell.split('/').pop() || 'zsh';
+
+		const profiles: ITerminalProfile[] = [
+			{
+				profileName: defaultName,
+				path: defaultShell,
+				isDefault: true,
+				isAutoDetected: true,
+			}
+		];
+
+		const extraShells = ['/bin/bash', '/bin/zsh', '/bin/sh'];
+		for (const shell of extraShells) {
+			const name = shell.split('/').pop()!;
+			if (name !== defaultName) {
+				profiles.push({
+					profileName: name,
+					path: shell,
+					isDefault: false,
+					isAutoDetected: true,
+				});
+			}
+		}
+
+		return profiles;
+	}
+
+	async getWslPath(original: string, _direction: 'unix-to-win' | 'win-to-unix'): Promise<string> {
+		return original;
+	}
+
+	async getEnvironment(): Promise<IProcessEnvironment> {
+		await ensureTauri();
+		if (_invoke) {
+			try {
+				const env = await _invoke('get_all_env') as Record<string, string>;
+				if (env) return env;
+			} catch { }
+		}
+		return {};
+	}
+	async getShellEnvironment(): Promise<IProcessEnvironment | undefined> {
+		await ensureTauri();
+		if (_invoke) {
+			try {
+				const env = await _invoke('get_all_env') as Record<string, string>;
+				if (env) return env;
+			} catch { }
+		}
+		return {};
+	}
+	async setTerminalLayoutInfo(_layoutInfo?: ITerminalsLayoutInfoById): Promise<void> { }
+	async updateTitle(_id: number, _title: string, _titleSource: TitleEventSource): Promise<void> { }
+	async updateIcon(_id: number, _userInitiated: boolean, _icon: TerminalIcon, _color?: string): Promise<void> { }
+	async setNextCommandId(_id: number, _commandLine: string, _commandId: string): Promise<void> { }
+	async getTerminalLayoutInfo(): Promise<ITerminalsLayoutInfo | undefined> { return undefined; }
+	async getPerformanceMarks(): Promise<performance.PerformanceMark[]> { return []; }
+	async reduceConnectionGraceTime(): Promise<void> { }
+	async requestDetachInstance(_workspaceId: string, _instanceId: number): Promise<IProcessDetails | undefined> { return undefined; }
+	async acceptDetachInstanceReply(_requestId: number, _persistentProcessId?: number): Promise<void> { }
+	async persistTerminalState(): Promise<void> { }
+	restartPtyHost(): void { }
+
+	async installAutoReply(_match: string, _reply: string): Promise<void> { }
+	async uninstallAllAutoReplies(): Promise<void> { }
+	async getAutoReplies(): Promise<Map<string, string>> { return new Map(); }
+}
+
+export class TauriTerminalBackendContribution implements IWorkbenchContribution {
+	static readonly ID = 'workbench.contrib.tauriTerminalBackend';
+
+	constructor(
+		@IInstantiationService instantiationService: IInstantiationService,
+		@ITerminalInstanceService terminalInstanceService: ITerminalInstanceService,
+		@ITerminalService terminalService: ITerminalService,
+		@IConfigurationService configurationService: IConfigurationService,
+	) {
+		if (!(globalThis as any).__SIDEX_TAURI__) {
+			return;
+		}
+
+		const backend = new TauriTerminalBackend();
+		Registry.as<ITerminalBackendRegistry>(TerminalExtensions.Backend)
+			.registerTerminalBackend(backend);
+		terminalInstanceService.didRegisterBackend(backend);
+		terminalService.registerProcessSupport(true);
+
+		this._setDefaultProfile(backend, configurationService);
+	}
+
+	private async _setDefaultProfile(backend: TauriTerminalBackend, configurationService: IConfigurationService): Promise<void> {
+		const platformKey = isMacintosh ? 'osx' : (isWindows ? 'windows' : 'linux');
+		const configKey = `terminal.integrated.defaultProfile.${platformKey}`;
+		const current = configurationService.getValue<string>(configKey);
+		if (!current) {
+			const shell = await backend.getDefaultSystemShell();
+			const name = shell.split('/').pop() || 'zsh';
+			configurationService.updateValue(configKey, name);
+		}
+	}
+}
+
+registerWorkbenchContribution2(
+	TauriTerminalBackendContribution.ID,
+	TauriTerminalBackendContribution,
+	WorkbenchPhase.BlockStartup,
+);

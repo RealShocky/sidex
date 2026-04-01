@@ -31,6 +31,12 @@ struct TerminalDataEvent {
     data: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct TerminalExitEvent {
+    terminal_id: u32,
+    exit_code: i32,
+}
+
 #[tauri::command]
 pub fn terminal_spawn(
     app: AppHandle,
@@ -61,6 +67,8 @@ pub fn terminal_spawn(
     });
 
     let mut cmd = CommandBuilder::new(&shell_path);
+    cmd.arg("-l");
+    cmd.env("TERM", "xterm-256color");
     if let Some(dir) = cwd {
         cmd.cwd(dir);
     }
@@ -123,6 +131,13 @@ pub fn terminal_spawn(
                 Err(_) => break,
             }
         }
+        let _ = app.emit(
+            "terminal-exit",
+            TerminalExitEvent {
+                terminal_id,
+                exit_code: 0,
+            },
+        );
     });
 
     Ok(id)
@@ -190,4 +205,9 @@ pub fn terminal_kill(state: State<'_, Arc<TerminalStore>>, terminal_id: u32) -> 
         .map_err(|e| format!("Failed to kill terminal {}: {}", terminal_id, e))?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_default_shell() -> String {
+    std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string())
 }

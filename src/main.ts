@@ -73,6 +73,9 @@ async function boot() {
 		configurationDefaults: {
 			'workbench.startupEditor': 'none',
 			'workbench.enableExperiments': false,
+			'workbench.iconTheme': 'vs-seti',
+			'workbench.colorTheme': 'Default Dark Modern',
+			'workbench.productIconTheme': 'Default',
 			'window.menuBarVisibility': 'hidden',
 			'window.titleBarStyle': 'custom',
 			'window.commandCenter': true,
@@ -82,7 +85,10 @@ async function boot() {
 			'update.showReleaseNotes': false,
 			'extensions.autoUpdate': false,
 			'extensions.autoCheckUpdates': false,
+			'extensions.autoRestart': true,
 			'workbench.settings.enableNaturalLanguageSearch': false,
+			'chat.editor.enabled': false,
+			'chat.commandCenter.enabled': false,
 		},
 	};
 

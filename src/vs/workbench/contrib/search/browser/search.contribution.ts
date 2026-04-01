@@ -64,7 +64,7 @@ const viewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewCo
 	id: VIEWLET_ID,
 	title: nls.localize2('search', "Search"),
 	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [VIEWLET_ID, { mergeViewWithContainerWhenSingleView: true }]),
-	hideIfEmpty: true,
+	hideIfEmpty: false,
 	icon: searchViewIcon,
 	order: 1,
 }, ViewContainerLocation.Sidebar, { doNotRegisterOpenCommand: true });

@@ -64,6 +64,9 @@ registerWorkbenchContribution2(TerminalMainContribution.ID, TerminalMainContribu
 registerWorkbenchContribution2(RemoteTerminalBackendContribution.ID, RemoteTerminalBackendContribution, WorkbenchPhase.AfterRestored);
 registerWorkbenchContribution2(TerminalTelemetryContribution.ID, TerminalTelemetryContribution, WorkbenchPhase.AfterRestored);
 
+// Tauri terminal backend — register it so VSCode's built-in terminal panel uses our PTY
+import './tauriTerminalBackend.js';
+
 // Register configurations
 registerTerminalPlatformConfiguration();
 registerTerminalConfiguration(getFontSnippets);

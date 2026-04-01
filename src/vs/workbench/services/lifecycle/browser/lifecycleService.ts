@@ -176,7 +176,7 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 				if (typeof promise === 'function') {
 					promise();
 				}
-				logService.error(`[lifecycle] Long running operations during shutdown are unsupported in the web (id: ${joiner.id})`);
+				logService.debug(`[lifecycle] Skipping long-running shutdown operation in web (id: ${joiner.id})`);
 			},
 			force: () => { /* No-Op in web */ },
 		});

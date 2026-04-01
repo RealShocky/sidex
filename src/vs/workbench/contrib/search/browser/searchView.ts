@@ -316,22 +316,22 @@ export class SearchView extends ViewPane {
 
 		// storage service listener for for roaming changes
 		this._register(this.storageService.onWillSaveState(() => {
-			this._saveSearchHistoryService();
+			try { this._saveSearchHistoryService(); } catch { /* view not yet rendered */ }
 		}));
 
 		this._register(this.storageService.onDidChangeValue(StorageScope.WORKSPACE, SearchHistoryService.SEARCH_HISTORY_KEY, this._store)(() => {
 			const restoredHistory = this.searchHistoryService.load();
 
-			if (restoredHistory.include) {
+			if (restoredHistory.include && this.inputPatternIncludes) {
 				this.inputPatternIncludes.prependHistory(restoredHistory.include);
 			}
-			if (restoredHistory.exclude) {
+			if (restoredHistory.exclude && this.inputPatternExcludes) {
 				this.inputPatternExcludes.prependHistory(restoredHistory.exclude);
 			}
-			if (restoredHistory.search) {
+			if (restoredHistory.search && this.searchWidget) {
 				this.searchWidget.prependSearchHistory(restoredHistory.search);
 			}
-			if (restoredHistory.replace) {
+			if (restoredHistory.replace && this.searchWidget) {
 				this.searchWidget.prependReplaceHistory(restoredHistory.replace);
 			}
 		}));
@@ -2332,9 +2332,9 @@ export class SearchView extends ViewPane {
 	}
 
 	private clearHistory(): void {
-		this.searchWidget.clearHistory();
-		this.inputPatternExcludes.clearHistory();
-		this.inputPatternIncludes.clearHistory();
+		this.searchWidget?.clearHistory();
+		this.inputPatternExcludes?.clearHistory();
+		this.inputPatternIncludes?.clearHistory();
 	}
 
 	public override saveState(): void {
