@@ -286,9 +286,13 @@ class TauriGitSCMProvider extends Disposable implements ISCMProvider {
 		this._count.set(total, undefined);
 
 		this._statusBarCommands.set([{
-			id: 'tauri-git.noop',
+			id: 'tauri-git.checkoutTo',
 			title: `$(git-branch) ${this._branch}`,
 			tooltip: `Branch: ${this._branch}`,
+		}, {
+			id: 'tauri-git.sync',
+			title: '$(sync)',
+			tooltip: 'Synchronize Changes',
 		}], undefined);
 
 		this._actionButton.set({
@@ -464,6 +468,141 @@ registerWorkbenchContribution2(
 	TauriGitContribution,
 	WorkbenchPhase.AfterRestored,
 );
+
+// ─── Repository-level commands ──────────────────────────────────────────────
+
+function getWorkspacePath(): string | undefined {
+	const folders = (window as any).__sidex_workspaceFolders;
+	return folders && folders.length > 0 ? folders[0] : undefined;
+}
+
+CommandsRegistry.registerCommand('tauri-git.pull', async () => {
+	const path = getWorkspacePath();
+	if (!path) { return; }
+	try {
+		const result = await invokeGit<string>('git_pull', { path });
+		console.log('[TauriGit] pull:', result);
+	} catch (err) {
+		console.error('[TauriGit] pull failed:', err);
+	}
+});
+
+CommandsRegistry.registerCommand('tauri-git.push', async () => {
+	const path = getWorkspacePath();
+	if (!path) { return; }
+	try {
+		const result = await invokeGit<string>('git_push', { path });
+		console.log('[TauriGit] push:', result);
+	} catch (err) {
+		console.error('[TauriGit] push failed:', err);
+	}
+});
+
+CommandsRegistry.registerCommand('tauri-git.fetch', async () => {
+	const path = getWorkspacePath();
+	if (!path) { return; }
+	try {
+		const result = await invokeGit<string>('git_fetch', { path });
+		console.log('[TauriGit] fetch:', result);
+	} catch (err) {
+		console.error('[TauriGit] fetch failed:', err);
+	}
+});
+
+CommandsRegistry.registerCommand('tauri-git.clone', async () => {
+	const url = window.prompt('Repository URL to clone:');
+	if (!url) { return; }
+	const dest = window.prompt('Destination path:');
+	if (!dest) { return; }
+	try {
+		await invokeGit('git_clone', { url, path: dest });
+		console.log('[TauriGit] cloned', url, 'to', dest);
+	} catch (err) {
+		console.error('[TauriGit] clone failed:', err);
+	}
+});
+
+CommandsRegistry.registerCommand('tauri-git.checkoutTo', async () => {
+	const path = getWorkspacePath();
+	if (!path) { return; }
+	const branch = window.prompt('Branch name to checkout:');
+	if (!branch) { return; }
+	try {
+		await invokeGit('git_checkout', { path, branch });
+		console.log('[TauriGit] checked out', branch);
+	} catch (err) {
+		console.error('[TauriGit] checkout failed:', err);
+	}
+});
+
+CommandsRegistry.registerCommand('tauri-git.createBranch', async () => {
+	const path = getWorkspacePath();
+	if (!path) { return; }
+	const name = window.prompt('New branch name:');
+	if (!name) { return; }
+	try {
+		await invokeGit('git_create_branch', { path, name });
+		console.log('[TauriGit] created branch', name);
+	} catch (err) {
+		console.error('[TauriGit] create branch failed:', err);
+	}
+});
+
+CommandsRegistry.registerCommand('tauri-git.sync', async () => {
+	const path = getWorkspacePath();
+	if (!path) { return; }
+	try {
+		await invokeGit<string>('git_pull', { path });
+		await invokeGit<string>('git_push', { path });
+		console.log('[TauriGit] sync complete');
+	} catch (err) {
+		console.error('[TauriGit] sync failed:', err);
+	}
+});
+
+// ─── SCM Source Control ("...") menu items ──────────────────────────────────
+
+MenuRegistry.appendMenuItem(MenuId.SCMSourceControl, {
+	command: { id: 'tauri-git.pull', title: 'Pull' },
+	group: '1_sync',
+	order: 1,
+});
+
+MenuRegistry.appendMenuItem(MenuId.SCMSourceControl, {
+	command: { id: 'tauri-git.push', title: 'Push' },
+	group: '1_sync',
+	order: 2,
+});
+
+MenuRegistry.appendMenuItem(MenuId.SCMSourceControl, {
+	command: { id: 'tauri-git.fetch', title: 'Fetch' },
+	group: '1_sync',
+	order: 3,
+});
+
+MenuRegistry.appendMenuItem(MenuId.SCMSourceControl, {
+	command: { id: 'tauri-git.sync', title: 'Synchronize Changes', icon: ThemeIcon.fromId('sync') },
+	group: '1_sync',
+	order: 4,
+});
+
+MenuRegistry.appendMenuItem(MenuId.SCMSourceControl, {
+	command: { id: 'tauri-git.clone', title: 'Clone...' },
+	group: '1_sync',
+	order: 5,
+});
+
+MenuRegistry.appendMenuItem(MenuId.SCMSourceControl, {
+	command: { id: 'tauri-git.checkoutTo', title: 'Checkout to...' },
+	group: '4_branch',
+	order: 1,
+});
+
+MenuRegistry.appendMenuItem(MenuId.SCMSourceControl, {
+	command: { id: 'tauri-git.createBranch', title: 'Create Branch...' },
+	group: '4_branch',
+	order: 2,
+});
 
 // Register SCM title toolbar actions (the 4 buttons next to "CHANGES")
 MenuRegistry.appendMenuItem(MenuId.SCMTitle, {

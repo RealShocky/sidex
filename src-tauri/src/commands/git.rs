@@ -202,3 +202,112 @@ pub async fn git_is_repo(path: String) -> Result<bool, String> {
 
     Ok(output.status.success())
 }
+
+#[tauri::command]
+pub async fn git_push(path: String, remote: Option<String>, branch: Option<String>) -> Result<String, String> {
+    let mut args = vec!["push"];
+    if let Some(ref r) = remote {
+        args.push(r.as_str());
+    }
+    if let Some(ref b) = branch {
+        args.push(b.as_str());
+    }
+    run_git(&path, &args)
+}
+
+#[tauri::command]
+pub async fn git_pull(path: String, remote: Option<String>, branch: Option<String>) -> Result<String, String> {
+    let mut args = vec!["pull"];
+    if let Some(ref r) = remote {
+        args.push(r.as_str());
+    }
+    if let Some(ref b) = branch {
+        args.push(b.as_str());
+    }
+    run_git(&path, &args)
+}
+
+#[tauri::command]
+pub async fn git_fetch(path: String, remote: Option<String>) -> Result<String, String> {
+    let mut args = vec!["fetch"];
+    if let Some(ref r) = remote {
+        args.push(r.as_str());
+    }
+    run_git(&path, &args)
+}
+
+#[tauri::command]
+pub async fn git_stash(path: String, action: String, message: Option<String>) -> Result<String, String> {
+    let mut args = vec!["stash"];
+    args.push(match action.as_str() {
+        "push" => "push",
+        "pop" => "pop",
+        "list" => "list",
+        "drop" => "drop",
+        other => return Err(format!("Unknown stash action: {}", other)),
+    });
+    if action == "push" {
+        if let Some(ref m) = message {
+            args.push("-m");
+            args.push(m.as_str());
+        }
+    }
+    run_git(&path, &args)
+}
+
+#[tauri::command]
+pub async fn git_create_branch(path: String, name: String, start_point: Option<String>) -> Result<(), String> {
+    let mut args = vec!["checkout", "-b", name.as_str()];
+    if let Some(ref sp) = start_point {
+        args.push(sp.as_str());
+    }
+    run_git(&path, &args)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn git_delete_branch(path: String, name: String) -> Result<(), String> {
+    run_git(&path, &["branch", "-d", &name])?;
+    Ok(())
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GitRemote {
+    pub name: String,
+    pub url: String,
+    #[serde(rename = "type")]
+    pub remote_type: String,
+}
+
+#[tauri::command]
+pub async fn git_remote_list(path: String) -> Result<Vec<GitRemote>, String> {
+    let output = run_git(&path, &["remote", "-v"])?;
+    let mut remotes = Vec::new();
+    for line in output.lines() {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 3 {
+            let remote_type = parts[2].trim_matches(|c| c == '(' || c == ')').to_string();
+            remotes.push(GitRemote {
+                name: parts[0].to_string(),
+                url: parts[1].to_string(),
+                remote_type,
+            });
+        }
+    }
+    Ok(remotes)
+}
+
+#[tauri::command]
+pub async fn git_clone(url: String, path: String) -> Result<(), String> {
+    let output = Command::new("git")
+        .args(["clone", &url, &path])
+        .output()
+        .map_err(|e| format!("Failed to execute git clone: {}", e))?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("git clone error: {}", stderr.trim()))
+    }
+}
