@@ -1,38 +1,17 @@
 import { defineConfig } from 'vite';
-import { viteStaticCopy } from 'vite-plugin-static-copy';
 import * as path from 'path';
 
 export default defineConfig({
   clearScreen: false,
-  assetsInclude: ['**/*.wasm'],
+  assetsInclude: ['**/*.wasm', '**/*.json', '**/*.tmLanguage.json'],
+  publicDir: 'public',
   server: {
     port: 1420,
     strictPort: true,
     watch: {
       ignored: ['**/src-tauri/**'],
     },
-    fs: {
-      allow: ['.', 'extensions', 'node_modules'],
-    },
   },
-  plugins: [
-    viteStaticCopy({
-      targets: [
-        {
-          src: 'extensions',
-          dest: '.',
-        },
-        {
-          src: 'extensions-meta.json',
-          dest: '.',
-        },
-        {
-          src: 'node_modules/vscode-oniguruma/release/onig.wasm',
-          dest: '.',
-        },
-      ],
-    }),
-  ],
   envPrefix: ['VITE_', 'TAURI_'],
   resolve: {
     alias: {
@@ -40,25 +19,36 @@ export default defineConfig({
     },
   },
   build: {
-    target: ['es2022', 'chrome100', 'safari15'],
-    minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
-    sourcemap: !!process.env.TAURI_DEBUG,
-    chunkSizeWarningLimit: 15000,
+    target: ['es2022', 'chrome100'],
+    minify: 'esbuild',
+    sourcemap: false,
+    chunkSizeWarningLimit: 25000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'monaco-editor': ['monaco-editor'],
-        },
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
       },
+    },
+    esbuild: {
+      // Disable aggressive minification to prevent runtime errors
+      minifyIdentifiers: false,
+      minifySyntax: false,
+      minifyWhitespace: false,
+      keepNames: true,
     },
   },
   optimizeDeps: {
     include: ['vscode-textmate', 'vscode-oniguruma'],
-    exclude: ['@tauri-apps/api', '@tauri-apps/plugin-dialog', '@tauri-apps/plugin-fs',
-              '@tauri-apps/plugin-clipboard-manager', '@tauri-apps/plugin-shell',
-              '@tauri-apps/plugin-notification', '@tauri-apps/plugin-opener'],
+    exclude: ['@tauri-apps/api'],
   },
   worker: {
     format: 'es',
+    rollupOptions: {
+      output: {
+        entryFileNames: 'workers/[name]-[hash].js',
+        chunkFileNames: 'workers/[name]-[hash].js',
+      },
+    },
   },
 });

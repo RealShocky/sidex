@@ -142,10 +142,13 @@ export class InlayHintsController implements IEditorContribution {
 	private readonly _decorationsMetadata = new Map<string, InlayHintDecorationRenderInfo>();
 	private readonly _debounceInfo: IFeatureDebounceInformation;
 	private readonly _ruleFactory: DynamicCssRules;
+	private readonly _scrollEndScheduler: RunOnceScheduler;
 
 	private _cursorInfo?: { position: Position; notEarlierThan: number };
 	private _activeRenderMode = RenderMode.Normal;
 	private _activeInlayHintPart?: ActiveInlayHintInfo;
+	private _isScrolling = false;
+	private _scheduler?: RunOnceScheduler;
 
 	constructor(
 		private readonly _editor: ICodeEditor,
@@ -157,7 +160,11 @@ export class InlayHintsController implements IEditorContribution {
 		@IInstantiationService private readonly _instaService: IInstantiationService,
 	) {
 		this._ruleFactory = this._disposables.add(new DynamicCssRules(this._editor));
-		this._debounceInfo = _featureDebounce.for(_languageFeaturesService.inlayHintsProvider, 'InlayHint', { min: 25 });
+		this._debounceInfo = _featureDebounce.for(_languageFeaturesService.inlayHintsProvider, 'InlayHint', { min: 100 });
+		this._scrollEndScheduler = new RunOnceScheduler(() => {
+			this._isScrolling = false;
+			this._scheduler?.schedule();
+		}, 150);
 		this._disposables.add(_languageFeaturesService.inlayHintsProvider.onDidChange(() => this._update()));
 		this._disposables.add(_editor.onDidChangeModel(() => this._update()));
 		this._disposables.add(_editor.onDidChangeModelLanguage(() => this._update()));
@@ -216,7 +223,7 @@ export class InlayHintsController implements IEditorContribution {
 					const model = this._editor.getModel();
 					const copies = this._copyInlayHintsWithCurrentAnchor(model);
 					this._updateHintsDecorators([model.getFullModelRange()], copies);
-					scheduler.schedule(0);
+					this._scheduler.schedule(0);
 				}
 			}));
 		}
@@ -240,14 +247,14 @@ export class InlayHintsController implements IEditorContribution {
 
 		const cancellationStore = this._sessionDisposables.add(new CancellationStore());
 
-		const scheduler = new RunOnceScheduler(async () => {
+		this._scheduler = new RunOnceScheduler(async () => {
 			const t1 = Date.now();
 
 			const { store, token } = cancellationStore.reset();
 
 			try {
 				const inlayHints = await InlayHintsFragments.create(this._languageFeaturesService.inlayHintsProvider, model, this._getHintsRanges(), token);
-				scheduler.delay = this._debounceInfo.update(model, Date.now() - t1);
+				this._scheduler!.delay = this._debounceInfo.update(model, Date.now() - t1);
 				if (token.isCancellationRequested) {
 					inlayHints.dispose();
 					return;
@@ -258,8 +265,8 @@ export class InlayHintsController implements IEditorContribution {
 					if (typeof provider.onDidChangeInlayHints === 'function' && !watchedProviders.has(provider)) {
 						watchedProviders.add(provider);
 						store.add(provider.onDidChangeInlayHints(() => {
-							if (!scheduler.isScheduled()) { // ignore event when request is already scheduled
-								scheduler.schedule();
+							if (!this._scheduler!.isScheduled()) { // ignore event when request is already scheduled
+								this._scheduler!.schedule();
 							}
 						}));
 					}
@@ -275,16 +282,14 @@ export class InlayHintsController implements IEditorContribution {
 			}
 		}, this._debounceInfo.get(model));
 
-		this._sessionDisposables.add(scheduler);
-		scheduler.schedule(0);
+		this._sessionDisposables.add(this._scheduler);
+		this._scheduler.schedule(0);
 
 		this._sessionDisposables.add(this._editor.onDidScrollChange((e) => {
-			// update when scroll position changes
-			// uses scrollTopChanged has weak heuristic to differenatiate between scrolling due to
-			// typing or due to "actual" scrolling
-			if (e.scrollTopChanged || !scheduler.isScheduled()) {
-				scheduler.schedule();
-			}
+			// Pause inlay hint updates during active scrolling for better performance
+			this._isScrolling = true;
+			this._scrollEndScheduler.schedule();
+			// Don't schedule during scroll - wait for scroll end
 		}));
 
 		const cursor = this._sessionDisposables.add(new MutableDisposable());
@@ -292,21 +297,21 @@ export class InlayHintsController implements IEditorContribution {
 			cts?.cancel();
 
 			// mark current cursor position and time after which the whole can be updated/redrawn
-			const delay = Math.max(scheduler.delay, 800);
+			const delay = Math.max(this._scheduler.delay, 800);
 			this._cursorInfo = { position: this._editor.getPosition()!, notEarlierThan: Date.now() + delay };
-			cursor.value = disposableTimeout(() => scheduler.schedule(0), delay);
+			cursor.value = disposableTimeout(() => this._scheduler.schedule(0), delay);
 
-			scheduler.schedule();
+			this._scheduler.schedule();
 		}));
 
 		this._sessionDisposables.add(this._editor.onDidChangeConfiguration(e => {
 			if (e.hasChanged(EditorOption.inlayHints)) {
-				scheduler.schedule();
+				this._scheduler.schedule();
 			}
 		}));
 
 		// mouse gestures
-		this._sessionDisposables.add(this._installDblClickGesture(() => scheduler.schedule(0)));
+		this._sessionDisposables.add(this._installDblClickGesture(() => this._scheduler.schedule(0)));
 		this._sessionDisposables.add(this._installLinkGesture());
 		this._sessionDisposables.add(this._installContextMenu());
 	}

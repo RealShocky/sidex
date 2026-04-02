@@ -126,8 +126,30 @@ export class ViewModelLinesFromProjectedModel implements IViewModelLines {
 			this.hiddenAreasDecorationIds = this.model.deltaDecorations(this.hiddenAreasDecorationIds, []);
 		}
 
+		const lineCount = this.model.getLineCount();
+		
+		// PERFORMANCE OPTIMIZATION: When word wrap is off and no hidden areas,
+		// we can skip the expensive line breaks computation and use 1:1 mapping
+		const hasHiddenAreas = this.hiddenAreasDecorationIds.length > 0;
+		const needsLineBreaks = this.wrappingColumn > 0 && this.wrappingColumn < 100000;
+		
+		if (!needsLineBreaks && !hasHiddenAreas && lineCount > 1000) {
+			// Fast path: no word wrap, no hidden areas, large file
+			// Use 1:1 model line to view line mapping
+			const values: number[] = new Array(lineCount);
+			for (let i = 0; i < lineCount; i++) {
+				// Create simple projection without line breaks computation
+				this.modelLineProjections[i] = createModelLineProjection(null, true);
+				values[i] = 1; // Each model line = 1 view line
+			}
+			this._validModelVersionId = this.model.getVersionId();
+			this.projectedModelLineLineCounts = new ConstantTimePrefixSumComputer(values);
+			this._ensureAtLeastOneVisibleLine();
+			return;
+		}
+
+		// Original slow path for word wrap or hidden areas
 		const linesContent = this.model.getLinesContent();
-		const lineCount = linesContent.length;
 		const lineBreaksComputer = this.createLineBreaksComputer();
 
 		for (let i = 0; i < lineCount; i++) {

@@ -63,6 +63,7 @@ export class EditorScrollbar extends ViewPart {
 			scrollPredominantAxis: scrollPredominantAxis,
 			scrollByPage: scrollbar.scrollByPage,
 			inertialScroll: inertialScroll,
+			mouseWheelSmoothScroll: false, // DISABLED - prevents scrollLeft errors
 		};
 
 		this.scrollbar = this._register(new SmoothScrollableElement(linesContent.domNode, scrollbarOptions, this._context.viewLayout.getScrollable()));

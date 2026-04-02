@@ -12,6 +12,9 @@
 	vertical-align: middle;
 	box-sizing: border-box;
 	cursor: default;
+	/* OPTIMIZATION: Prevent layout shifts during scroll */
+	will-change: top;
+	contain: layout style;
 }
 
 .monaco-editor .relative-current-line-number {

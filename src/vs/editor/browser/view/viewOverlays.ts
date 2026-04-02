@@ -97,7 +97,7 @@ export class ViewOverlays extends ViewPart {
 		return this._visibleLines.onLinesInserted(e);
 	}
 	public override onScrollChanged(e: viewEvents.ViewScrollChangedEvent): boolean {
-		return this._visibleLines.onScrollChanged(e) || true;
+		return this._visibleLines.onScrollChanged(e);
 	}
 	public override onTokensChanged(e: viewEvents.ViewTokensChangedEvent): boolean {
 		return this._visibleLines.onTokensChanged(e);

@@ -83,7 +83,7 @@ const editorConfiguration: IConfigurationNode = {
 				nls.localize('semanticHighlighting.false', 'Semantic highlighting disabled for all color themes.'),
 				nls.localize('semanticHighlighting.configuredByTheme', 'Semantic highlighting is configured by the current color theme\'s `semanticHighlighting` setting.')
 			],
-			default: 'configuredByTheme',
+			default: false, // DISABLED: Causes severe lag during scrolling
 			description: nls.localize('semanticHighlighting.enabled', "Controls whether the semanticHighlighting is shown for the languages that support it.")
 		},
 		'editor.stablePeek': {
@@ -93,12 +93,12 @@ const editorConfiguration: IConfigurationNode = {
 		},
 		'editor.maxTokenizationLineLength': {
 			type: 'integer',
-			default: 20_000,
+			default: 5_000, // Reduced from 20_000 for better performance
 			description: nls.localize('maxTokenizationLineLength', "Lines above this length will not be tokenized for performance reasons")
 		},
 		'editor.experimental.asyncTokenization': {
 			type: 'boolean',
-			default: true,
+			default: false, // DISABLED - reduces memory usage
 			description: nls.localize('editor.experimental.asyncTokenization', "Controls whether the tokenization should happen asynchronously on a web worker."),
 			tags: ['experimental'],
 		},

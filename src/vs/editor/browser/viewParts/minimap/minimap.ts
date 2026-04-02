@@ -824,6 +824,9 @@ export class Minimap extends ViewPart implements IMinimapModel {
 	private _sectionHeaderCache = new LRUCache<string, string>(10, 1.5);
 
 	private _actual: InnerMinimap;
+	
+	// Debounce token changes to prevent excessive re-rendering during background tokenization
+	private readonly _onTokensChangedScheduler: RunOnceScheduler;
 
 	constructor(context: ViewContext) {
 		super(context);
@@ -839,6 +842,12 @@ export class Minimap extends ViewPart implements IMinimapModel {
 		this._shouldCheckSampling = false;
 
 		this._actual = new InnerMinimap(context.theme, this);
+		
+		// Initialize token change debouncer (100ms delay to batch rapid token changes)
+		this._onTokensChangedScheduler = new RunOnceScheduler(() => {
+			this._actual.render();
+		}, 100);
+		this._register(this._onTokensChangedScheduler);
 	}
 
 	public override dispose(): void {
@@ -934,12 +943,18 @@ export class Minimap extends ViewPart implements IMinimapModel {
 				}
 			}
 			if (ranges.length) {
-				return this._actual.onTokensChanged(ranges);
+				// Debounce token changes to prevent excessive re-rendering
+				const result = this._actual.onTokensChanged(ranges);
+				this._onTokensChangedScheduler.schedule();
+				return result;
 			} else {
 				return false;
 			}
 		} else {
-			return this._actual.onTokensChanged(e.ranges);
+			// Debounce token changes to prevent excessive re-rendering
+			const result = this._actual.onTokensChanged(e.ranges);
+			this._onTokensChangedScheduler.schedule();
+			return result;
 		}
 	}
 	public override onTokensColorsChanged(e: viewEvents.ViewTokensColorsChangedEvent): boolean {

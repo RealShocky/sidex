@@ -552,7 +552,7 @@ class ViewLayerRenderer<T extends IVisibleLine> {
 		}
 	}
 
-	private static readonly _sb = new StringBuilder(100000);
+	private static readonly _sb = new StringBuilder(20000);  // REDUCED from 100000 to save memory
 
 	private _finishRendering(ctx: IRendererContext<T>, domNodeIsEmpty: boolean, deltaTop: number[]): void {
 

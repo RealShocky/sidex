@@ -353,11 +353,17 @@ export class Scrollable extends Disposable {
 	}
 
 	private _performSmoothScrolling(): void {
-		if (!this._smoothScrolling) {
+		if (!this._smoothScrolling || !this._state) {
 			return;
 		}
 		const update = this._smoothScrolling.tick();
+		if (!update) {
+			return;
+		}
 		const newState = this._state.withScrollPosition(update);
+		if (!newState) {
+			return;
+		}
 
 		this._setState(newState, true);
 

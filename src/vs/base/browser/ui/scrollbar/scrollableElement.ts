@@ -21,7 +21,7 @@ import './media/scrollbars.css';
 
 const HIDE_TIMEOUT = 500;
 const SCROLL_WHEEL_SENSITIVITY = 50;
-const SCROLL_WHEEL_SMOOTH_SCROLL_ENABLED = true;
+const SCROLL_WHEEL_SMOOTH_SCROLL_ENABLED = false;
 
 export interface IOverviewRulerLayoutInfo {
 	parent: HTMLElement;

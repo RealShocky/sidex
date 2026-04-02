@@ -105,7 +105,7 @@ export class ExtensionService extends AbstractExtensionService implements IExten
 		);
 
 		// Initialize installed extensions first and do it only after workbench is ready
-		lifecycleService.when(LifecyclePhase.Ready).then(async () => {
+		lifecycleService.when(LifecyclePhase.Restored).then(async () => {
 			await this._initializeIfNeeded();
 		});
 
@@ -243,11 +243,7 @@ class BrowserExtensionHostFactory implements IExtensionHostFactory {
 				return null;
 			}
 			case ExtensionHostKind.LocalWebWorker: {
-				const startup = (
-					isInitialStart
-						? ExtensionHostStartup.EagerManualStart
-						: ExtensionHostStartup.EagerAutoStart
-				);
+				const startup = ExtensionHostStartup.LazyAutoStart;
 				return this._instantiationService.createInstance(WebWorkerExtensionHost, runningLocation, startup, this._createLocalExtensionHostDataProvider(runningLocations, runningLocation, isInitialStart));
 			}
 			case ExtensionHostKind.Remote: {

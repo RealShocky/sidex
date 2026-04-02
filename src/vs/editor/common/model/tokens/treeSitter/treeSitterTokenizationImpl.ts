@@ -5,6 +5,7 @@
 
 import { Emitter, Event } from '../../../../../base/common/event.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
+import { RunOnceScheduler } from '../../../../../base/common/async.js';
 import { setTimeout0 } from '../../../../../base/common/platform.js';
 import { StopWatch } from '../../../../../base/common/stopwatch.js';
 import { LanguageId } from '../../../encodedTokenAttributes.js';
@@ -35,6 +36,10 @@ export class TreeSitterTokenizationImpl extends Disposable {
 
 	private _encodedLanguageId: LanguageId;
 
+	// Debounce viewport tokenization during scroll for better performance
+	private readonly _viewportTokenizeScheduler: RunOnceScheduler;
+	private _pendingLineRanges: readonly LineRange[] | undefined;
+
 	private get _textModel() {
 		return this._tree.textModel;
 	}
@@ -60,9 +65,19 @@ export class TreeSitterTokenizationImpl extends Disposable {
 		this._guessVersion = this._textModel.getVersionId();
 		this._tokenStore.buildStore(this._createEmptyTokens(), TokenQuality.None);
 
+		// Debounce viewport tokenization to prevent excessive updates during scroll (100ms delay)
+		this._viewportTokenizeScheduler = this._register(new RunOnceScheduler(() => {
+			if (this._pendingLineRanges) {
+				this._parseAndTokenizeViewPortNow(this._pendingLineRanges);
+				this._pendingLineRanges = undefined;
+			}
+		}, 100));
+
 		this._register(autorun(reader => {
 			const visibleLineRanges = this._visibleLineRanges.read(reader);
-			this._parseAndTokenizeViewPort(visibleLineRanges);
+			// Debounce viewport tokenization to prevent blocking during scroll
+			this._pendingLineRanges = visibleLineRanges;
+			this._viewportTokenizeScheduler.schedule();
 		}));
 
 		this._register(autorunHandleChanges({
@@ -228,6 +243,12 @@ export class TreeSitterTokenizationImpl extends Disposable {
 
 
 	private _parseAndTokenizeViewPort(lineRanges: readonly LineRange[]) {
+		// Debounced - actual work happens in _parseAndTokenizeViewPortNow
+		this._pendingLineRanges = lineRanges;
+		this._viewportTokenizeScheduler.schedule();
+	}
+
+	private _parseAndTokenizeViewPortNow(lineRanges: readonly LineRange[]) {
 		const viewportRanges = lineRanges.map(r => r.toInclusiveRange()).filter(isDefined);
 		for (const range of viewportRanges) {
 			const startOffsetOfRangeInDocument = this._textModel.getOffsetAt(range.getStartPosition());

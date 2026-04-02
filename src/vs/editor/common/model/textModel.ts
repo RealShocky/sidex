@@ -656,12 +656,15 @@ export class TextModel extends Disposable implements model.ITextModel, IDecorati
 		let longLineCharCount = 0;
 
 		const lineCount = this._buffer.getLineCount();
-		for (let lineNumber = 1; lineNumber <= lineCount; lineNumber++) {
+		// PERFORMANCE: For large files, sample lines instead of iterating all
+		const sampleInterval = lineCount > 1000 ? Math.ceil(lineCount / 100) : 1; // Sample ~100 lines for large files
+		
+		for (let lineNumber = 1; lineNumber <= lineCount; lineNumber += sampleInterval) {
 			const lineLength = this._buffer.getLineLength(lineNumber);
 			if (lineLength >= LONG_LINE_BOUNDARY) {
-				longLineCharCount += lineLength;
+				longLineCharCount += lineLength * sampleInterval; // Approximate
 			} else {
-				smallLineCharCount += lineLength;
+				smallLineCharCount += lineLength * sampleInterval; // Approximate
 			}
 		}
 

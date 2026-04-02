@@ -1243,7 +1243,7 @@ class ToggleImportFoldAction extends FoldingAction<void> {
 }
 
 
-registerEditorContribution(FoldingController.ID, FoldingController, EditorContributionInstantiation.Eager); // eager because it uses `saveViewState`/`restoreViewState`
+// registerEditorContribution(FoldingController.ID, FoldingController, EditorContributionInstantiation.Eager); // DISABLED for performance
 registerEditorAction(UnfoldAction);
 registerEditorAction(UnFoldRecursivelyAction);
 registerEditorAction(FoldAction);

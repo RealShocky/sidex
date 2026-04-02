@@ -422,4 +422,5 @@ class SemanticTokensResponse {
 	}
 }
 
-registerEditorFeature(DocumentSemanticTokensFeature);
+// DISABLED: Document semantic tokens cause severe lag when scrolling
+// registerEditorFeature(DocumentSemanticTokensFeature);

@@ -18,6 +18,11 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 	private _typicalHalfwidthCharacterWidth: number;
 	private _renderResult: string[] | null;
 
+	// Caching mechanism for decoration sorting
+	private _cachedDecorations: ViewModelDecoration[] | null = null;
+	private _cachedViewportRange: Range | null = null;
+	private _cacheVersion = 0;
+
 	constructor(context: ViewContext) {
 		super();
 		this._context = context;
@@ -31,6 +36,8 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 	public override dispose(): void {
 		this._context.removeEventHandler(this);
 		this._renderResult = null;
+		this._cachedDecorations = null;
+		this._cachedViewportRange = null;
 		super.dispose();
 	}
 
@@ -39,9 +46,15 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const options = this._context.configuration.options;
 		this._typicalHalfwidthCharacterWidth = options.get(EditorOption.fontInfo).typicalHalfwidthCharacterWidth;
+		// Invalidate cache on configuration change
+		this._cachedDecorations = null;
+		this._cachedViewportRange = null;
 		return true;
 	}
 	public override onDecorationsChanged(e: viewEvents.ViewDecorationsChangedEvent): boolean {
+		// Invalidate cache when decorations change
+		this._cachedDecorations = null;
+		this._cachedViewportRange = null;
 		return true;
 	}
 	public override onFlushed(e: viewEvents.ViewFlushedEvent): boolean {
@@ -64,7 +77,42 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 	}
 	// --- end event handlers
 
+	private _canReuseCache(newRange: Range): boolean {
+		if (!this._cachedDecorations || !this._cachedViewportRange) {
+			return false;
+		}
+
+		const oldRange = this._cachedViewportRange;
+		const lineThreshold = 5; // Allow 5 lines of drift before invalidating
+
+		return (
+			Math.abs(newRange.startLineNumber - oldRange.startLineNumber) <= lineThreshold &&
+			Math.abs(newRange.endLineNumber - oldRange.endLineNumber) <= lineThreshold
+		);
+	}
+
 	public prepareRender(ctx: RenderingContext): void {
+		const visibleRange = ctx.visibleRange;
+
+		// Check if we can reuse cached decorations
+		if (this._canReuseCache(visibleRange)) {
+			// Use cached decorations for rendering
+			const decorations = this._cachedDecorations!;
+			const visibleStartLineNumber = visibleRange.startLineNumber;
+			const visibleEndLineNumber = visibleRange.endLineNumber;
+			const output: string[] = [];
+			for (let lineNumber = visibleStartLineNumber; lineNumber <= visibleEndLineNumber; lineNumber++) {
+				const lineIndex = lineNumber - visibleStartLineNumber;
+				output[lineIndex] = '';
+			}
+
+			// Render first whole line decorations and then regular decorations
+			this._renderWholeLineDecorations(ctx, decorations, output);
+			this._renderNormalDecorations(ctx, decorations, output);
+			this._renderResult = output;
+			return;
+		}
+
 		const _decorations = ctx.getDecorationsInViewport();
 
 		// Keep only decorations with `className`
@@ -98,8 +146,13 @@ export class DecorationsOverlay extends DynamicViewOverlay {
 			return Range.compareRangesUsingStarts(a.range, b.range);
 		});
 
-		const visibleStartLineNumber = ctx.visibleRange.startLineNumber;
-		const visibleEndLineNumber = ctx.visibleRange.endLineNumber;
+		// Cache the sorted decorations
+		this._cachedDecorations = decorations;
+		this._cachedViewportRange = visibleRange;
+		this._cacheVersion++;
+
+		const visibleStartLineNumber = visibleRange.startLineNumber;
+		const visibleEndLineNumber = visibleRange.endLineNumber;
 		const output: string[] = [];
 		for (let lineNumber = visibleStartLineNumber; lineNumber <= visibleEndLineNumber; lineNumber++) {
 			const lineIndex = lineNumber - visibleStartLineNumber;

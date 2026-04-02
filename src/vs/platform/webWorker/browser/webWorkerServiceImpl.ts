@@ -43,6 +43,11 @@ export class WebWorkerService implements IWebWorkerService {
 	}
 
 	getWorkerUrl(descriptor: WebWorkerDescriptor): string {
+		// Prefer bundler location for Vite/Webpack compatibility
+		if (descriptor.esmModuleLocationBundler) {
+			const url = typeof descriptor.esmModuleLocationBundler === 'function' ? descriptor.esmModuleLocationBundler() : descriptor.esmModuleLocationBundler;
+			return url.toString();
+		}
 		if (!descriptor.esmModuleLocation) {
 			throw new Error('Missing esmModuleLocation in WebWorkerDescriptor');
 		}

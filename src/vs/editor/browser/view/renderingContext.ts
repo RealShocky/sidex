@@ -44,10 +44,10 @@ export abstract class RestrictedRenderingContext {
 		this.bigNumbersDelta = this.viewportData.bigNumbersDelta;
 
 		const vInfo = this._viewLayout.getCurrentViewport();
-		this.scrollTop = vInfo.top;
-		this.scrollLeft = vInfo.left;
-		this.viewportWidth = vInfo.width;
-		this.viewportHeight = vInfo.height;
+		this.scrollTop = vInfo?.top ?? 0;
+		this.scrollLeft = vInfo?.left ?? 0;
+		this.viewportWidth = vInfo?.width ?? 0;
+		this.viewportHeight = vInfo?.height ?? 0;
 	}
 
 	public getScrolledTopFromAbsoluteTop(absoluteTop: number): number {

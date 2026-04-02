@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancelablePromise, createCancelablePromise, RunOnceScheduler } from '../../../../base/common/async.js';
+import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
 import { Disposable, dispose, IDisposable } from '../../../../base/common/lifecycle.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorContributionInstantiation, registerEditorContribution } from '../../../browser/editorExtensions.js';
@@ -34,7 +35,10 @@ export class ViewportSemanticTokensContribution extends Disposable implements IE
 	private readonly _provider: LanguageFeatureRegistry<DocumentRangeSemanticTokensProvider>;
 	private readonly _debounceInformation: IFeatureDebounceInformation;
 	private readonly _tokenizeViewport: RunOnceScheduler;
+	private readonly _scrollEndScheduler: RunOnceScheduler;
+	private _isScrolling = false;
 	private _outstandingRequests: CancelablePromise<unknown>[];
+	private _requestCts: CancellationTokenSource | null = null;
 	private _rangeProvidersChangeListeners: IDisposable[];
 
 	constructor(
@@ -48,8 +52,12 @@ export class ViewportSemanticTokensContribution extends Disposable implements IE
 		super();
 		this._editor = editor;
 		this._provider = languageFeaturesService.documentRangeSemanticTokensProvider;
-		this._debounceInformation = languageFeatureDebounceService.for(this._provider, 'DocumentRangeSemanticTokens', { min: 100, max: 500 });
+		this._debounceInformation = languageFeatureDebounceService.for(this._provider, 'DocumentRangeSemanticTokens', { min: 300, max: 1000 });
 		this._tokenizeViewport = this._register(new RunOnceScheduler(() => this._tokenizeViewportNow(), 100));
+		this._scrollEndScheduler = this._register(new RunOnceScheduler(() => {
+			this._isScrolling = false;
+			this._tokenizeViewport.schedule();
+		}, 150));
 		this._outstandingRequests = [];
 		this._rangeProvidersChangeListeners = [];
 		const scheduleTokenizeViewport = () => {
@@ -74,7 +82,9 @@ export class ViewportSemanticTokensContribution extends Disposable implements IE
 		};
 
 		this._register(this._editor.onDidScrollChange(() => {
-			scheduleTokenizeViewport();
+			this._isScrolling = true;
+			this._scrollEndScheduler.schedule();
+			// Don't schedule tokenization during scroll, will be scheduled when scroll ends
 		}));
 		this._register(this._editor.onDidChangeModel(() => {
 			bindRangeProvidersChangeListeners();
@@ -122,10 +132,18 @@ export class ViewportSemanticTokensContribution extends Disposable implements IE
 	}
 
 	private _cancelAll(): void {
+		this._cancelOutstandingRequests();
+	}
+
+	private _cancelOutstandingRequests(): void {
 		for (const request of this._outstandingRequests) {
 			request.cancel();
 		}
 		this._outstandingRequests = [];
+		if (this._requestCts) {
+			this._requestCts.dispose();
+			this._requestCts = null;
+		}
 	}
 
 	private _removeOutstandingRequest(req: CancelablePromise<unknown>): void {
@@ -138,6 +156,9 @@ export class ViewportSemanticTokensContribution extends Disposable implements IE
 	}
 
 	private _tokenizeViewportNow(): void {
+		if (this._isScrolling) {
+			return; // Skip during scroll
+		}
 		if (!this._editor.hasModel()) {
 			return;
 		}
@@ -159,6 +180,9 @@ export class ViewportSemanticTokensContribution extends Disposable implements IE
 		}
 		const visibleRanges = this._editor.getVisibleRangesPlusViewportAboveBelow();
 
+		// Cancel existing requests before creating new ones
+		this._cancelOutstandingRequests();
+
 		this._outstandingRequests = this._outstandingRequests.concat(visibleRanges.map(range => this._requestRange(model, range)));
 	}
 
@@ -179,4 +203,5 @@ export class ViewportSemanticTokensContribution extends Disposable implements IE
 	}
 }
 
-registerEditorContribution(ViewportSemanticTokensContribution.ID, ViewportSemanticTokensContribution, EditorContributionInstantiation.AfterFirstRender);
+// DISABLED: Viewport semantic tokens cause severe lag when scrolling
+// registerEditorContribution(ViewportSemanticTokensContribution.ID, ViewportSemanticTokensContribution, EditorContributionInstantiation.AfterFirstRender);

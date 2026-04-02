@@ -8,7 +8,7 @@ import { ToggleStickyScroll, FocusStickyScroll, SelectEditor, SelectPreviousStic
 import { StickyScrollController } from './stickyScrollController.js';
 import { registerAction2 } from '../../../../platform/actions/common/actions.js';
 
-registerEditorContribution(StickyScrollController.ID, StickyScrollController, EditorContributionInstantiation.AfterFirstRender);
+// registerEditorContribution(StickyScrollController.ID, StickyScrollController, EditorContributionInstantiation.AfterFirstRender); // DISABLED for performance
 registerAction2(ToggleStickyScroll);
 registerAction2(FocusStickyScroll);
 registerAction2(SelectPreviousStickyScrollLine);

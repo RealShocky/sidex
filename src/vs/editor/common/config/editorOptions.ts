@@ -3146,7 +3146,7 @@ export type EditorStickyScrollOptions = Readonly<Required<IEditorStickyScrollOpt
 class EditorStickyScroll extends BaseEditorOption<EditorOption.stickyScroll, IEditorStickyScrollOptions, EditorStickyScrollOptions> {
 
 	constructor() {
-		const defaults: EditorStickyScrollOptions = { enabled: true, maxLineCount: 5, defaultModel: 'outlineModel', scrollWithEditor: true };
+		const defaults: EditorStickyScrollOptions = { enabled: false, maxLineCount: 5, defaultModel: 'outlineModel', scrollWithEditor: true };
 		super(
 			EditorOption.stickyScroll, 'stickyScroll', defaults,
 			{
@@ -3434,7 +3434,7 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, IEditorMinima
 
 	constructor() {
 		const defaults: EditorMinimapOptions = {
-			enabled: true,
+			enabled: false, // DISABLED for performance - causes significant lag when scrolling
 			size: 'proportional',
 			side: 'right',
 			showSlider: 'mouseover',
@@ -4835,8 +4835,8 @@ class GuideOptions extends BaseEditorOption<EditorOption.guides, IGuidesOptions,
 			bracketPairsHorizontal: 'active',
 			highlightActiveBracketPair: true,
 
-			indentation: true,
-			highlightActiveIndentation: true
+			indentation: false,
+			highlightActiveIndentation: false // DISABLED to reduce visual changes
 		};
 
 		super(
@@ -6123,7 +6123,7 @@ export const EditorOptions = {
 		{ description: nls.localize('stickyTabStops', "Emulate selection behavior of tab characters when using spaces for indentation. Selection will stick to tab stops.") }
 	)),
 	codeLens: register(new EditorBooleanOption(
-		EditorOption.codeLens, 'codeLens', true,
+		EditorOption.codeLens, 'codeLens', false, // DISABLED for performance
 		{ description: nls.localize('codeLens', "Controls whether the editor shows CodeLens.") }
 	)),
 	codeLensFontFamily: register(new EditorStringOption(
@@ -6300,7 +6300,7 @@ export const EditorOptions = {
 		EditorOption.fixedOverflowWidgets, 'fixedOverflowWidgets', false,
 	)),
 	folding: register(new EditorBooleanOption(
-		EditorOption.folding, 'folding', true,
+		EditorOption.folding, 'folding', false, // DISABLED for performance
 		{ description: nls.localize('folding', "Controls whether the editor has code folding enabled.") }
 	)),
 	foldingStrategy: register(new EditorStringEnumOption(
@@ -6350,7 +6350,7 @@ export const EditorOptions = {
 		{ description: nls.localize('formatOnType', "Controls whether the editor should automatically format the line after typing.") }
 	)),
 	glyphMargin: register(new EditorBooleanOption(
-		EditorOption.glyphMargin, 'glyphMargin', true,
+		EditorOption.glyphMargin, 'glyphMargin', false, // DISABLED to prevent layout shifts
 		{ description: nls.localize('glyphMargin', "Controls whether the editor should render the vertical glyph margin. Glyph margin is mostly used for debugging.") }
 	)),
 	gotoLocation: register(new EditorGoToLocation()),
@@ -6377,7 +6377,7 @@ export const EditorOptions = {
 	lineNumbers: register(new EditorRenderLineNumbersOption()),
 	lineNumbersMinChars: register(new EditorIntOption(
 		EditorOption.lineNumbersMinChars, 'lineNumbersMinChars',
-		5, 1, 300
+		8, 1, 300 // INCREASED from 5 to prevent layout shifts in large files
 	)),
 	linkedEditing: register(new EditorBooleanOption(
 		EditorOption.linkedEditing, 'linkedEditing', false,
@@ -6460,7 +6460,7 @@ export const EditorOptions = {
 	)),
 	occurrencesHighlight: register(new EditorStringEnumOption(
 		EditorOption.occurrencesHighlight, 'occurrencesHighlight',
-		'singleFile' as 'off' | 'singleFile' | 'multiFile',
+		'off' as 'off' | 'singleFile' | 'multiFile', // DISABLED for performance
 		['off', 'singleFile', 'multiFile'] as const,
 		{
 			markdownEnumDescriptions: [
@@ -6489,7 +6489,7 @@ export const EditorOptions = {
 	)),
 	overviewRulerLanes: register(new EditorIntOption(
 		EditorOption.overviewRulerLanes, 'overviewRulerLanes',
-		3, 0, 3
+		0, 0, 3 // Set to 0 to disable overview ruler lanes (reduces layout shifts)
 	)),
 	padding: register(new EditorPadding()),
 	pasteAs: register(new EditorPasteAs()),
@@ -6542,7 +6542,7 @@ export const EditorOptions = {
 	)),
 	renderLineHighlight: register(new EditorStringEnumOption(
 		EditorOption.renderLineHighlight, 'renderLineHighlight',
-		'line' as 'none' | 'gutter' | 'line' | 'all',
+		'none' as 'none' | 'gutter' | 'line' | 'all', // DISABLED to reduce visual changes
 		['none', 'gutter', 'line', 'all'] as const,
 		{
 			enumDescriptions: [
@@ -6565,7 +6565,7 @@ export const EditorOptions = {
 	)),
 	renderWhitespace: register(new EditorStringEnumOption(
 		EditorOption.renderWhitespace, 'renderWhitespace',
-		'selection' as 'selection' | 'none' | 'boundary' | 'trailing' | 'all',
+		'none' as 'none' | 'boundary' | 'selection' | 'trailing' | 'all', // DISABLED - reduces render overhead
 		['none', 'boundary', 'selection', 'trailing', 'all'] as const,
 		{
 			enumDescriptions: [
@@ -6594,7 +6594,7 @@ export const EditorOptions = {
 		{ description: nls.localize('scrollBeyondLastColumn', "Controls the number of extra characters beyond which the editor will scroll horizontally.") }
 	)),
 	scrollBeyondLastLine: register(new EditorBooleanOption(
-		EditorOption.scrollBeyondLastLine, 'scrollBeyondLastLine', true,
+		EditorOption.scrollBeyondLastLine, 'scrollBeyondLastLine', false, // DISABLED for performance
 		{ description: nls.localize('scrollBeyondLastLine', "Controls whether the editor will scroll beyond the last line.") }
 	)),
 	scrollOnMiddleClick: register(new EditorBooleanOption(
@@ -6671,7 +6671,7 @@ export const EditorOptions = {
 	)),
 	stopRenderingLineAfter: register(new EditorIntOption(
 		EditorOption.stopRenderingLineAfter, 'stopRenderingLineAfter',
-		10000, -1, Constants.MAX_SAFE_SMALL_INTEGER,
+		5000, -1, Constants.MAX_SAFE_SMALL_INTEGER, // Reduced from 10000 for performance
 	)),
 	suggest: register(new EditorSuggest()),
 	inlineSuggest: register(new InlineEditorSuggest()),

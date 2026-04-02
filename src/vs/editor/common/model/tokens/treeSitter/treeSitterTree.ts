@@ -336,12 +336,15 @@ export class TreeSitterTree extends Disposable {
 		do {
 			const timer = performance.now();
 
+			// Parse in small chunks to prevent blocking during scroll
+			// The progressCallback will yield every 16ms (1 frame at 60fps)
 			newTree = this._parser.parse((index: number, position?: TreeSitter.Point) => this._parseCallback(index), this._tree.get(), { progressCallback, includedRanges: this._ranges });
 
 			time += performance.now() - timer;
 			passes++;
 
-			// So long as this isn't the initial parse, even if the model changes and edits are applied, the tree parsing will continue correctly after the await.
+			// Yield to event loop after each parse attempt to allow UI updates
+			// This is critical for maintaining 60fps during scroll
 			await new Promise<void>(resolve => setTimeout0(resolve));
 
 		} while (!this._store.isDisposed && !newTree && inProgressVersion === this.textModel.getVersionId());
@@ -438,7 +441,8 @@ function newTimeOutProgressCallback(): (state: TreeSitter.ParseState) => void {
 	let lastYieldTime: number = performance.now();
 	return function parseProgressCallback(_state: TreeSitter.ParseState) {
 		const now = performance.now();
-		if (now - lastYieldTime > 50) {
+		// Reduced from 50ms to 16ms (1 frame at 60fps) for smoother scrolling
+		if (now - lastYieldTime > 16) {
 			lastYieldTime = now;
 			return true;
 		}
