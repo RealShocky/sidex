@@ -78,11 +78,13 @@
 			const resolvedConfiguration: ISandboxConfiguration = configuration = await tauriInvoke('get_window_config') as ISandboxConfiguration;
 
 			const zoomLevel = resolvedConfiguration.zoomLevel ?? 0;
-			(document.documentElement.style as any).zoom = String(Math.pow(1.2, zoomLevel));
+			if (zoomLevel !== 0) {
+				(document.documentElement.style as any).zoom = String(Math.pow(1.2, zoomLevel));
+			}
 
 			return resolvedConfiguration;
-		} catch (error) {
-			throw new Error(`Preload: unable to fetch window config via Tauri invoke: ${error}`);
+		} catch {
+			return configuration ?? {} as ISandboxConfiguration;
 		}
 	})();
 
@@ -91,12 +93,15 @@
 	//#region Resolve Shell Environment
 
 	const resolveShellEnv: Promise<Record<string, string>> = (async () => {
-		const [userEnv, shellEnv] = await Promise.all([
-			(async () => (await resolveConfiguration).userEnv)(),
-			tauriInvoke('get_shell_env') as Promise<Record<string, string>>
-		]);
-
-		return { ...shellEnv, ...userEnv };
+		try {
+			const [userEnv, shellEnv] = await Promise.all([
+				(async () => (await resolveConfiguration).userEnv)(),
+				tauriInvoke('get_shell_env') as Promise<Record<string, string>>
+			]);
+			return { ...shellEnv, ...userEnv };
+		} catch {
+			return {};
+		}
 	})();
 
 	//#endregion
@@ -170,8 +175,10 @@
 		webFrame: {
 
 			setZoomLevel(level: number): void {
-				if (typeof level === 'number') {
+				if (typeof level === 'number' && level !== 0) {
 					(document.documentElement.style as any).zoom = String(Math.pow(1.2, level));
+				} else {
+					(document.documentElement.style as any).zoom = '';
 				}
 			}
 		},

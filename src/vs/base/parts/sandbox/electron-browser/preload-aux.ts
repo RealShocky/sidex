@@ -46,8 +46,10 @@
 		webFrame: {
 
 			setZoomLevel(level: number): void {
-				if (typeof level === 'number') {
+				if (typeof level === 'number' && level !== 0) {
 					(document.documentElement.style as any).zoom = String(Math.pow(1.2, level));
+				} else {
+					(document.documentElement.style as any).zoom = '';
 				}
 			}
 		}
