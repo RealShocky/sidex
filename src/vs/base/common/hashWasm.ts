@@ -18,11 +18,16 @@ async function ensureWasm(): Promise<any> {
 		initPromise = (async () => {
 			try {
 				const wasmPath = '/wasm/hash/sidex_hash_wasm.js';
-				const mod = await import(/* @vite-ignore */ wasmPath);
+				const resp = await fetch(wasmPath);
+				if (!resp.ok) { throw new Error(`HTTP ${resp.status}`); }
+				const code = await resp.text();
+				const blob = new Blob([code], { type: 'application/javascript' });
+				const url = URL.createObjectURL(blob);
+				const mod = await import(/* @vite-ignore */ url);
+				URL.revokeObjectURL(url);
 				await mod.default();
 				wasmModule = mod;
-			} catch (e) {
-				console.warn('[SideX] WASM hash module not available, using JS fallback', e);
+			} catch {
 				initFailed = true;
 			}
 		})();
