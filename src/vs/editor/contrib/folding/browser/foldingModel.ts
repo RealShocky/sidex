@@ -109,7 +109,7 @@ export class FoldingModel implements IDisposable {
 	}
 
 	public removeManualRanges(ranges: ILineRange[]) {
-		const newFoldingRanges: FoldRange[] = new Array();
+		const newFoldingRanges: FoldRange[] = [];
 		const intersects = (foldRange: FoldRange) => {
 			for (const range of ranges) {
 				if (!(range.startLineNumber > foldRange.endLineNumber || foldRange.startLineNumber > range.endLineNumber)) {

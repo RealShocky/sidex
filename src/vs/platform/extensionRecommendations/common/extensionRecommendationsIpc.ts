@@ -38,12 +38,12 @@ export class ExtensionRecommendationNotificationServiceChannelClient implements 
 export class ExtensionRecommendationNotificationServiceChannel implements IServerChannel {
 	constructor(private service: IExtensionRecommendationNotificationService) {}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	 
 	listen(_: unknown, event: string): Event<any> {
 		throw new Error(`Event not found: ${event}`);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	 
 	call(_: unknown, command: string, args?: any): Promise<any> {
 		switch (command) {
 			case 'promptImportantExtensionsInstallNotification':

@@ -45,7 +45,7 @@ export class BrowserWindowDriver implements IWindowDriver {
 	}
 
 	async setValue(selector: string, text: string): Promise<void> {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const element = mainWindow.document.querySelector(selector);
 
 		if (!element) {
@@ -60,7 +60,7 @@ export class BrowserWindowDriver implements IWindowDriver {
 	}
 
 	async isActiveElement(selector: string): Promise<boolean> {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const element = mainWindow.document.querySelector(selector);
 
 		if (element !== mainWindow.document.activeElement) {
@@ -87,7 +87,7 @@ export class BrowserWindowDriver implements IWindowDriver {
 	}
 
 	async getElements(selector: string, recursive: boolean): Promise<IElement[]> {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const query = mainWindow.document.querySelectorAll(selector);
 		const result: IElement[] = [];
 		for (let i = 0; i < query.length; i++) {
@@ -138,7 +138,7 @@ export class BrowserWindowDriver implements IWindowDriver {
 	}
 
 	async typeInEditor(selector: string, text: string): Promise<void> {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const element = mainWindow.document.querySelector(selector);
 
 		if (!element) {
@@ -177,7 +177,7 @@ export class BrowserWindowDriver implements IWindowDriver {
 	}
 
 	async getEditorSelection(selector: string): Promise<{ selectionStart: number; selectionEnd: number }> {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const element = mainWindow.document.querySelector(selector);
 		if (!element) {
 			throw new Error(`Editor not found: ${selector}`);
@@ -196,14 +196,14 @@ export class BrowserWindowDriver implements IWindowDriver {
 	}
 
 	async getTerminalBuffer(selector: string): Promise<string[]> {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const element = mainWindow.document.querySelector(selector);
 
 		if (!element) {
 			throw new Error(`Terminal not found: ${selector}`);
 		}
 
-		// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+		// eslint-disable-next-line local/code-no-any-casts
 		const xterm = (element as any).xterm;
 
 		if (!xterm) {
@@ -219,14 +219,14 @@ export class BrowserWindowDriver implements IWindowDriver {
 	}
 
 	async writeInTerminal(selector: string, text: string): Promise<void> {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const element = mainWindow.document.querySelector(selector);
 
 		if (!element) {
 			throw new Error(`Element not found: ${selector}`);
 		}
 
-		// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+		// eslint-disable-next-line local/code-no-any-casts
 		const xterm = (element as any).xterm as XtermTerminal | undefined;
 
 		if (!xterm) {
@@ -255,7 +255,7 @@ export class BrowserWindowDriver implements IWindowDriver {
 		selector: string,
 		offset?: { x: number; y: number }
 	): Promise<{ x: number; y: number }> {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const element = mainWindow.document.querySelector(selector);
 
 		if (!element) {

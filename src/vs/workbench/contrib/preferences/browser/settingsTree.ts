@@ -914,7 +914,7 @@ export interface ISettingLinkClickEvent {
 }
 
 function removeChildrenFromTabOrder(node: Element): void {
-	// eslint-disable-next-line no-restricted-syntax
+	 
 	const focusableElements = node.querySelectorAll(`
 		[tabindex="0"],
 		input:not([tabindex="-1"]),
@@ -932,7 +932,7 @@ function removeChildrenFromTabOrder(node: Element): void {
 }
 
 function addChildrenToTabOrder(node: Element): void {
-	// eslint-disable-next-line no-restricted-syntax
+	 
 	const focusableElements = node.querySelectorAll(`[${AbstractSettingRenderer.ELEMENT_FOCUSABLE_ATTR}="true"]`);
 
 	focusableElements.forEach(element => {
@@ -1529,7 +1529,7 @@ class SettingArrayRenderer
 
 	renderTemplate(container: HTMLElement): ISettingListItemTemplate {
 		const common = this.renderCommonTemplate(null, container, 'list');
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const descriptionElement = common.containerElement.querySelector('.setting-item-description')!;
 		const validationErrorMessageElement = $('.setting-item-validation-message');
 		descriptionElement.after(validationErrorMessageElement);
@@ -1662,7 +1662,7 @@ abstract class AbstractSettingObjectRenderer
 		widget.domNode.classList.add(AbstractSettingRenderer.CONTROL_CLASS);
 		common.toDispose.add(widget);
 
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const descriptionElement = common.containerElement.querySelector('.setting-item-description')!;
 		const validationErrorMessageElement = $('.setting-item-validation-message');
 		descriptionElement.after(validationErrorMessageElement);
@@ -2184,7 +2184,7 @@ class SettingEnumRenderer
 
 		common.toDispose.add(selectBox);
 		selectBox.render(common.controlElement);
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const selectElement = common.controlElement.querySelector('select');
 		if (selectElement) {
 			selectElement.classList.add(AbstractSettingRenderer.CONTROL_CLASS);
@@ -2561,7 +2561,7 @@ class SettingsExtensionToggleRenderer
 		const extensionId = dataElement.setting.displayExtensionId!;
 		template.elementDisposables.add(
 			template.actionButton.onDidClick(async () => {
-				this._telemetryService.publicLog2<{ extensionId: String }, ManageExtensionClickTelemetryClassification>(
+				this._telemetryService.publicLog2<{ extensionId: string }, ManageExtensionClickTelemetryClassification>(
 					'ManageExtensionClick',
 					{ extensionId }
 				);
@@ -2571,7 +2571,7 @@ class SettingsExtensionToggleRenderer
 
 		template.elementDisposables.add(
 			template.dismissButton.onDidClick(async () => {
-				this._telemetryService.publicLog2<{ extensionId: String }, ManageExtensionClickTelemetryClassification>(
+				this._telemetryService.publicLog2<{ extensionId: string }, ManageExtensionClickTelemetryClassification>(
 					'DismissExtensionClick',
 					{ extensionId }
 				);
@@ -2701,7 +2701,7 @@ export class SettingTreeRenderers extends Disposable {
 	}
 
 	showContextMenu(element: SettingsTreeSettingElement, settingDOMElement: HTMLElement): void {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const toolbarElement = settingDOMElement.querySelector('.monaco-toolbar');
 		if (toolbarElement) {
 			this._contextMenuService.showContextMenu({
@@ -2722,7 +2722,7 @@ export class SettingTreeRenderers extends Disposable {
 	}
 
 	getDOMElementsForSettingKey(treeContainer: HTMLElement, key: string): NodeListOf<HTMLElement> {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		return treeContainer.querySelectorAll(`[${AbstractSettingRenderer.SETTING_KEY_ATTR}="${key}"]`);
 	}
 

@@ -683,7 +683,7 @@ class AnchorCoordinate {
 	) {}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function safeInvoke<T extends (...args: any[]) => any>(
 	fn: T,
 	thisArg: ThisParameterType<T>,

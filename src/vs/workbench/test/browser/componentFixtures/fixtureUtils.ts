@@ -385,10 +385,10 @@ export function createEditorServices(
 	options?: CreateServicesOptions
 ): TestInstantiationService {
 	const services = new ServiceCollection();
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	 
 	const serviceIdentifiers: ServiceIdentifier<any>[] = [];
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	 
 	const define = <T>(id: ServiceIdentifier<T>, ctor: new (...args: any[]) => T) => {
 		if (!services.has(id)) {
 			services.set(id, new SyncDescriptor(ctor));

@@ -74,7 +74,7 @@ export const Extensions = {
 
 type ConfigurationValue = { value: unknown | undefined /* Remove */ };
 export type ConfigurationKeyValuePairs = [string, ConfigurationValue][];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export type ConfigurationMigrationFn = (
 	value: any,
 	valueAccessor: (key: string) => any

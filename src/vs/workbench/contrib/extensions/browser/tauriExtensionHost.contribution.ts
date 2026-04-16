@@ -905,9 +905,9 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 	}
 
 	private _getActiveEditorState(): { editorId: string; selections: any[] } | null {
-		if (!this._activeTrackedEditorId) return null;
+		if (!this._activeTrackedEditorId) {return null;}
 		const entry = this._trackedEditors.get(this._activeTrackedEditorId);
-		if (!entry) return null;
+		if (!entry) {return null;}
 		const allSelections = entry.editor.getSelections() || [];
 		return {
 			editorId: this._activeTrackedEditorId,
@@ -971,7 +971,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 
 	private _onTrySetSelections(editorId: string, selections: any[]): void {
 		const editor = this._findTrackedEditor(editorId);
-		if (!editor || !selections?.length) return;
+		if (!editor || !selections?.length) {return;}
 		const editorSelections = selections.map((s: any) => ({
 			selectionStartLineNumber: (s.anchor?.line ?? 0) + 1,
 			selectionStartColumn: (s.anchor?.character ?? 0) + 1,
@@ -983,22 +983,22 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 
 	private _onTrySetOptions(editorId: string, options: any): void {
 		const editor = this._findTrackedEditor(editorId);
-		if (!editor || !options) return;
+		if (!editor || !options) {return;}
 		const opts: Record<string, unknown> = {};
-		if (options.cursorStyle !== undefined) opts.cursorStyle = options.cursorStyle;
+		if (options.cursorStyle !== undefined) {opts.cursorStyle = options.cursorStyle;}
 		if (options.lineNumbers !== undefined) {
 			opts.lineNumbers = options.lineNumbers === 2 ? 'relative' : options.lineNumbers === 1 ? 'on' : 'off';
 		}
-		if (Object.keys(opts).length) (editor as any).updateOptions(opts);
+		if (Object.keys(opts).length) {(editor as any).updateOptions(opts);}
 		if (options.tabSize !== undefined || options.insertSpaces !== undefined) {
 			const model = editor.getModel();
-			if (model) model.updateOptions({ tabSize: options.tabSize, insertSpaces: options.insertSpaces });
+			if (model) {model.updateOptions({ tabSize: options.tabSize, insertSpaces: options.insertSpaces });}
 		}
 	}
 
 	private _onTryRevealRange(editorId: string, range: any, revealType: number): void {
 		const editor = this._findTrackedEditor(editorId);
-		if (!editor || !range) return;
+		if (!editor || !range) {return;}
 		const monacoRange = new Range(
 			(range.start?.line ?? 0) + 1, (range.start?.character ?? 0) + 1,
 			(range.end?.line ?? 0) + 1, (range.end?.character ?? 0) + 1,
@@ -1013,7 +1013,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 
 	private _onTrySetDecorations(editorId: string, key: string, ranges: any[]): void {
 		const editor = this._findTrackedEditor(editorId);
-		if (!editor || !key) return;
+		if (!editor || !key) {return;}
 		const decorations = (ranges || []).map((r: any) => {
 			const range = r.range || r;
 			return {
@@ -1028,7 +1028,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 	}
 
 	private _onRegisterDecorationType(key: string, options: any): void {
-		if (!key || this._decorationTypes.has(key)) return;
+		if (!key || this._decorationTypes.has(key)) {return;}
 		try {
 			this.codeEditorService.registerDecorationType('sidex-exthost', key, options || {});
 			this._decorationTypes.set(key, { dispose: () => this.codeEditorService.removeDecorationType(key) });
@@ -2096,7 +2096,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 	}
 
 	private _startEditorTracking(): void {
-		if (this._editorTrackingInitialized) return;
+		if (this._editorTrackingInitialized) {return;}
 		this._editorTrackingInitialized = true;
 
 		const getEditorId = (editor: ICodeEditor): string => {
@@ -2105,7 +2105,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 		};
 
 		const shouldTrack = (editor: ICodeEditor): boolean => {
-			if ((editor as any).isSimpleWidget) return false;
+			if ((editor as any).isSimpleWidget) {return false;}
 			const model = editor.getModel();
 			return !!model && isSyncedModelScheme(model.uri.scheme);
 		};
@@ -2137,27 +2137,27 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 		};
 
 		const sendDelta = (removed: string[], added: any[], newActive: string | null | undefined) => {
-			if (!this._connected) return;
+			if (!this._connected) {return;}
 			const delta: any = {};
-			if (removed.length) delta.removedEditors = removed;
-			if (added.length) delta.addedEditors = added;
-			if (newActive !== undefined) delta.newActiveEditor = newActive;
+			if (removed.length) {delta.removedEditors = removed;}
+			if (added.length) {delta.addedEditors = added;}
+			if (newActive !== undefined) {delta.newActiveEditor = newActive;}
 			if (Object.keys(delta).length > 0) {
 				this._send({ id: this._nextId(), type: 'editorsDelta', params: delta });
 			}
 		};
 
 		const trackEditor = (editor: ICodeEditor) => {
-			if (!shouldTrack(editor)) return;
+			if (!shouldTrack(editor)) {return;}
 			const editorId = getEditorId(editor);
-			if (this._trackedEditors.has(editorId)) return;
+			if (this._trackedEditors.has(editorId)) {return;}
 
 			const listeners: IDisposable[] = [];
 
 			listeners.push(editor.onDidChangeCursorSelection((e) => {
-				if (!this._connected) return;
+				if (!this._connected) {return;}
 				const model = editor.getModel();
-				if (!model || !isSyncedModelScheme(model.uri.scheme)) return;
+				if (!model || !isSyncedModelScheme(model.uri.scheme)) {return;}
 				const allSelections = editor.getSelections() || [];
 				this._send({
 					id: this._nextId(),
@@ -2178,9 +2178,9 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 			}));
 
 			listeners.push(editor.onDidChangeConfiguration(() => {
-				if (!this._connected) return;
+				if (!this._connected) {return;}
 				const model = editor.getModel();
-				if (!model) return;
+				if (!model) {return;}
 				const config = editor.getOptions();
 				this._send({
 					id: this._nextId(),
@@ -2200,7 +2200,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 			}));
 
 			listeners.push(editor.onDidScrollChange(() => {
-				if (!this._connected) return;
+				if (!this._connected) {return;}
 				const vr = editor.getVisibleRanges() || [];
 				this._send({
 					id: this._nextId(),
@@ -2218,7 +2218,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 			}));
 
 			listeners.push(editor.onKeyDown((e: any) => {
-				if (!this._connected) return;
+				if (!this._connected) {return;}
 				if (e.keyCode === 9 /* Escape */) {
 					const cmd = this._registeredCommands.has('extension.vim_escape') ? 'extension.vim_escape' : null;
 					if (cmd) {
@@ -2244,7 +2244,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 		};
 
 		const updateState = () => {
-			if (!this._connected) return;
+			if (!this._connected) {return;}
 
 			const currentEditors = new Map<string, ICodeEditor>();
 			for (const editor of this.codeEditorService.listCodeEditors()) {
@@ -2286,7 +2286,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 			}
 
 			const activeChanged = activeId !== this._activeTrackedEditorId ? activeId : undefined;
-			if (activeChanged !== undefined) this._activeTrackedEditorId = activeId;
+			if (activeChanged !== undefined) {this._activeTrackedEditorId = activeId;}
 
 			sendDelta(removed, added, activeChanged);
 		};
@@ -2788,7 +2788,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 
 	private _getOrCreateTreeView(viewId: string): TreeView | null {
 		let treeView = this._treeViews.get(viewId);
-		if (treeView) return treeView;
+		if (treeView) {return treeView;}
 		const viewsRegistry = Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry);
 		const existing = viewsRegistry.getView(viewId) as ITreeViewDescriptor | null;
 		if (existing?.treeView) {
@@ -2830,10 +2830,10 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 
 	private _onTreeViewUpdate(viewId: string, msg: any): void {
 		const tv = this._getOrCreateTreeView(viewId);
-		if (!tv) return;
-		if (msg.message !== undefined) tv.message = msg.message;
-		if (msg.title !== undefined) tv.title = msg.title;
-		if (msg.description !== undefined) tv.description = msg.description;
+		if (!tv) {return;}
+		if (msg.message !== undefined) {tv.message = msg.message;}
+		if (msg.title !== undefined) {tv.title = msg.title;}
+		if (msg.description !== undefined) {tv.description = msg.description;}
 	}
 
 	private async _setupTauriWatchListener(): Promise<void> {

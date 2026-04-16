@@ -15,16 +15,19 @@ pub fn get_os_info() -> OsInfo {
     OsInfo {
         platform: env::consts::OS.to_string(),
         arch: env::consts::ARCH.to_string(),
-        hostname: hostname::get()
-            .map(|h| h.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "unknown".to_string()),
-        homedir: dirs::home_dir()
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|| "unknown".to_string()),
+        hostname: hostname::get().map_or_else(
+            |_| "unknown".to_string(),
+            |h| h.to_string_lossy().to_string(),
+        ),
+        homedir: dirs::home_dir().map_or_else(
+            || "unknown".to_string(),
+            |p| p.to_string_lossy().to_string(),
+        ),
         tmpdir: env::temp_dir().to_string_lossy().to_string(),
     }
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn get_env(key: String) -> Option<String> {
     env::var(&key).ok()

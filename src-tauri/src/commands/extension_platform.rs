@@ -14,6 +14,7 @@ pub enum ExtensionKind {
     Wasm,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeRuntimeInfo {
@@ -23,6 +24,7 @@ pub struct NodeRuntimeInfo {
     pub bundled: bool,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ResolvedNode {
     pub path: String,
@@ -31,6 +33,7 @@ pub struct ResolvedNode {
     pub bundled: bool,
 }
 
+#[allow(dead_code)]
 impl ResolvedNode {
     pub fn to_info(&self) -> NodeRuntimeInfo {
         NodeRuntimeInfo {
@@ -117,6 +120,7 @@ struct SidexTomlManifest {
     contributes: Option<SidexTomlContributes>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct SidexTomlExtension {
     id: String,
@@ -141,6 +145,7 @@ struct SidexTomlContributes {
     commands: Vec<SidexTomlCommand>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct SidexTomlCommand {
     id: String,
@@ -350,8 +355,6 @@ pub fn bundled_node_candidates(app: &AppHandle) -> Vec<PathBuf> {
 
     let resource_candidates = if cfg!(target_os = "windows") {
         vec!["node/node.exe", "bin/node.exe", "node.exe"]
-    } else if cfg!(target_os = "macos") {
-        vec!["node/bin/node", "bin/node", "node"]
     } else {
         vec!["node/bin/node", "bin/node", "node"]
     };
@@ -505,8 +508,7 @@ pub fn read_extension_manifest(
     if let Some(entry) = entry {
         if !manifest_entry_exists(ext_dir, entry) {
             return Err(format!(
-                "entry '{}' missing for extension {}.{}",
-                entry, publisher, name
+                "entry '{entry}' missing for extension {publisher}.{name}"
             ));
         }
     }
@@ -626,19 +628,17 @@ pub fn scan_extensions(app: &AppHandle, paths: &[PathBuf]) -> Vec<ExtensionManif
         disable_ids.insert(id.to_string());
     }
 
-    let disable_prefixes = vec!["anysphere.cursor", "cursor."];
+    let disable_prefixes = ["anysphere.cursor", "cursor."];
 
     let mut by_id: HashMap<String, ExtensionManifest> = HashMap::new();
     for search_path in paths {
-        let entries = match fs::read_dir(search_path) {
-            Ok(entries) => entries,
-            Err(_) => continue,
+        let Ok(entries) = fs::read_dir(search_path) else {
+            continue;
         };
 
         for entry in entries.flatten() {
-            let file_type = match entry.file_type() {
-                Ok(ft) => ft,
-                Err(_) => continue,
+            let Ok(file_type) = entry.file_type() else {
+                continue;
             };
             if !file_type.is_dir() {
                 continue;
@@ -650,9 +650,8 @@ pub fn scan_extensions(app: &AppHandle, paths: &[PathBuf]) -> Vec<ExtensionManif
             } else {
                 read_extension_manifest(app, &ext_dir)
             };
-            let manifest = match manifest {
-                Ok(m) => m,
-                Err(_) => continue,
+            let Ok(manifest) = manifest else {
+                continue;
             };
 
             if disable_ids.contains(&manifest.id)
@@ -866,13 +865,13 @@ pub async fn extension_platform_bootstrap(
         let count = wasm_manifests.len();
         log::info!("[platform] loading {count} WASM extensions in background");
         std::thread::spawn(move || {
+            use tauri::Emitter;
             for manifest in &wasm_manifests {
                 if let Err(e) = runtime.load_extension(manifest) {
                     log::warn!("[platform] failed to load WASM ext {}: {e}", manifest.id);
                 }
             }
             log::info!("[platform] {count} WASM extensions loaded, emitting ready event");
-            use tauri::Emitter;
             let _ = app_handle.emit("sidex-wasm-extensions-ready", count);
         });
     }
@@ -917,6 +916,7 @@ pub async fn extension_platform_status(
 ) -> Result<serde_json::Value, String> {
     let snapshot = supervisor.snapshot()?;
     let paths = extension_search_paths(&app);
+    #[allow(clippy::cast_possible_truncation)]
     let ext_count = scan_extensions(&app, &paths).len() as u32;
     Ok(serde_json::json!({
         "running": snapshot.running,

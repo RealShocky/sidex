@@ -471,7 +471,7 @@ export abstract class ProcessExplorerControl extends Disposable {
 						selectionPids.push(pid);
 					}
 
-					// eslint-disable-next-line no-restricted-syntax
+					 
 					const rows = selectionPids?.map(e => getDocument(container).getElementById(`pid-${e}`)).filter(e => !!e);
 					if (rows) {
 						const text = rows.map(e => e.innerText).filter(e => !!e);
@@ -486,7 +486,7 @@ export abstract class ProcessExplorerControl extends Disposable {
 				id: 'copyAll',
 				label: localize('copyAll', 'Copy All'),
 				run: () => {
-					// eslint-disable-next-line no-restricted-syntax
+					 
 					const processList = getDocument(container).getElementById('process-explorer');
 					if (processList) {
 						this.clipboardService.writeText(processList.innerText);

@@ -1232,7 +1232,7 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 					outgoing.forEach(value => {
 						value.to = MainThreadLanguageFeatures._reviveCallHierarchyItemDto(value.to);
 					});
-					// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+					// eslint-disable-next-line local/code-no-any-casts
 					return <any>outgoing;
 				},
 				provideIncomingCalls: async (item, token) => {
@@ -1248,7 +1248,7 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 					incoming.forEach(value => {
 						value.from = MainThreadLanguageFeatures._reviveCallHierarchyItemDto(value.from);
 					});
-					// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+					// eslint-disable-next-line local/code-no-any-casts
 					return <any>incoming;
 				}
 			})

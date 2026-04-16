@@ -54,7 +54,7 @@ export class EnumVerifier<T> extends Verifier<T> {
 	}
 }
 
-export class ObjectVerifier<T extends Object> extends Verifier<T> {
+export class ObjectVerifier<T extends object> extends Verifier<T> {
 	constructor(
 		defaultValue: T,
 		private readonly verifier: { [K in keyof T]: IVerifier<T[K]> }
@@ -74,7 +74,7 @@ export class ObjectVerifier<T extends Object> extends Verifier<T> {
 	}
 }
 
-export function verifyObject<T extends Object>(verifiers: { [K in keyof T]: IVerifier<T[K]> }, value: Object): T {
+export function verifyObject<T extends object>(verifiers: { [K in keyof T]: IVerifier<T[K]> }, value: object): T {
 	const result = Object.create(null);
 
 	for (const key in verifiers) {

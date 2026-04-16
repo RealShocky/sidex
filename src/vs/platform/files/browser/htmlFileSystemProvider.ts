@@ -376,7 +376,7 @@ export class HTMLFileSystemProvider
 			return;
 		}
 
-		// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+		// eslint-disable-next-line local/code-no-any-casts
 		const observer = new (globalThis as any).FileSystemObserver((records: FileSystemObserverRecord[]) => {
 			if (disposables.isDisposed) {
 				return;

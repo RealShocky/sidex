@@ -1246,7 +1246,7 @@ export class ActionListWidget<T> extends Disposable {
 	}
 
 	private _getRowElement(index: number): HTMLElement | null {
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		return this.domNode.ownerDocument.getElementById(this._list.getElementID(index));
 	}
 

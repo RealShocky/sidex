@@ -82,6 +82,7 @@ fn should_skip(entry: &walkdir::DirEntry, include_hidden: bool) -> bool {
     false
 }
 
+#[allow(clippy::cast_possible_wrap)]
 fn fuzzy_score(pattern: &[u8], target: &str) -> Option<i64> {
     if pattern.is_empty() {
         return Some(0);
@@ -93,7 +94,7 @@ fn fuzzy_score(pattern: &[u8], target: &str) -> Option<i64> {
     let mut prev_match = false;
 
     for (ti, &tc) in target_bytes.iter().enumerate() {
-        if pi < pattern.len() && tc.to_ascii_lowercase() == pattern[pi].to_ascii_lowercase() {
+        if pi < pattern.len() && tc.eq_ignore_ascii_case(&pattern[pi]) {
             score += 1;
             if ti == 0 || !target_bytes[ti - 1].is_ascii_alphanumeric() {
                 score += 5;
@@ -124,6 +125,7 @@ fn fuzzy_score(pattern: &[u8], target: &str) -> Option<i64> {
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value, clippy::unnecessary_wraps)]
 pub fn search_files(
     root: String,
     pattern: String,
@@ -154,7 +156,7 @@ pub fn search_files(
         .max_depth(20)
         .into_iter()
         .filter_entry(|e| !should_skip(e, include_hidden))
-        .filter_map(|e| e.ok())
+        .filter_map(std::result::Result::ok)
     {
         if entry.file_type().is_dir() {
             continue;
@@ -174,9 +176,8 @@ pub fn search_files(
         }
 
         let name = entry.file_name().to_string_lossy();
-        let score = match fuzzy_score(&pattern_bytes, &name) {
-            Some(s) => s,
-            None => continue,
+        let Some(score) = fuzzy_score(&pattern_bytes, &name) else {
+            continue;
         };
 
         scored.push(FileMatch {
@@ -192,6 +193,7 @@ pub fn search_files(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_lines, clippy::needless_pass_by_value)]
 pub fn search_text(
     root: String,
     query: String,
@@ -236,15 +238,15 @@ pub fn search_text(
         regex::escape(&query)
     };
 
-    let re = if !use_literal {
+    let re = if use_literal {
+        None
+    } else {
         Some(
             RegexBuilder::new(&pattern)
                 .case_insensitive(!case_sensitive)
                 .build()
                 .map_err(|e| format!("Invalid search pattern: {e}"))?,
         )
-    } else {
-        None
     };
 
     let files: Vec<_> = WalkDir::new(&root)
@@ -252,7 +254,7 @@ pub fn search_text(
         .max_depth(20)
         .into_iter()
         .filter_entry(|e| !should_skip(e, include_hidden))
-        .filter_map(|e| e.ok())
+        .filter_map(std::result::Result::ok)
         .filter(|e| e.file_type().is_file())
         .filter(|e| {
             let path = e.path();
@@ -330,20 +332,20 @@ pub fn search_text(
                 }
             }
 
-            if !local.is_empty() {
+            if local.is_empty() {
+                None
+            } else {
                 let prev = hit_count.fetch_add(local.len(), Ordering::Relaxed);
                 if prev + local.len() >= max_results {
                     done.store(true, Ordering::Relaxed);
                     local.truncate(max_results.saturating_sub(prev));
                 }
                 Some(local)
-            } else {
-                None
             }
         })
         .collect();
 
-    let total: usize = all_matches.iter().map(|v| v.len()).sum();
+    let total: usize = all_matches.iter().map(std::vec::Vec::len).sum();
     let mut results = Vec::with_capacity(total.min(max_results));
     for batch in all_matches {
         let remaining = max_results.saturating_sub(results.len());

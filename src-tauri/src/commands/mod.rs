@@ -28,7 +28,6 @@ pub use compress::*;
 pub use crypto::*;
 pub use debug::*;
 pub use ext_api::*;
-pub use ext_host::*;
 pub use extension_diagnostics::*;
 pub use extension_platform::*;
 pub use extension_wasm::*;

@@ -791,14 +791,14 @@ export class SearchWidget extends Widget {
 			}
 			keyboardEvent.preventDefault();
 		} else if (keyboardEvent.equals(KeyCode.UpArrow)) {
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			stopPropagationForMultiLineUpwards(
 				keyboardEvent,
 				this.searchInput?.getValue() ?? '',
 				this.searchInput?.domNode.querySelector('textarea') ?? null
 			);
 		} else if (keyboardEvent.equals(KeyCode.DownArrow)) {
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			stopPropagationForMultiLineDownwards(
 				keyboardEvent,
 				this.searchInput?.getValue() ?? '',
@@ -870,14 +870,14 @@ export class SearchWidget extends Widget {
 			this.searchInput?.focus();
 			keyboardEvent.preventDefault();
 		} else if (keyboardEvent.equals(KeyCode.UpArrow)) {
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			stopPropagationForMultiLineUpwards(
 				keyboardEvent,
 				this.replaceInput?.getValue() ?? '',
 				this.replaceInput?.domNode.querySelector('textarea') ?? null
 			);
 		} else if (keyboardEvent.equals(KeyCode.DownArrow)) {
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			stopPropagationForMultiLineDownwards(
 				keyboardEvent,
 				this.replaceInput?.getValue() ?? '',

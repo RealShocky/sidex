@@ -173,7 +173,7 @@ export abstract class DomWidget extends Disposable {
 	/**
 	 * @deprecated Do not call manually! Only for use by the hot reload system (a vite plugin will inject calls to this method in dev mode).
 	 */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	 
 	public static registerWidgetHotReplacement(this: new (...args: any[]) => DomWidget, id: string): void {
 		if (!isHotReloadEnabled()) {
 			return;
@@ -193,7 +193,7 @@ export abstract class DomWidget extends Disposable {
 }
 
 const _hotReloadId = Symbol('DomWidgetHotReloadId');
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const hotReloadedWidgets = new Map<string, ISettableObservable<new (...args: any[]) => DomWidget>>();
 
 interface HotReloadable {

@@ -343,7 +343,7 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 		// Expand on drag over
 		this.dragHandler = new DelayedDragHandler(container, () => this.setExpanded(true));
 
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const titleElement = container.querySelector('.title') as HTMLElement;
 		const setHeader = () => {
 			titleElement.textContent = this.name;
@@ -876,7 +876,7 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 
 	override getOptimalWidth(): number {
 		const parentNode = this.tree.getHTMLElement();
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		const childNodes = ([] as HTMLElement[]).slice.call(parentNode.querySelectorAll('.explorer-item .label-name')); // select all file labels
 
 		return DOM.getLargestChildWidth(parentNode, childNodes);

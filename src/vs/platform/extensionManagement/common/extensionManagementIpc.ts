@@ -91,7 +91,7 @@ export class ExtensionManagementChannel<
 		);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	 
 	listen(context: any, event: string): Event<any> {
 		const uriTransformer = this.getUriTransformer(context);
 		switch (event) {
@@ -154,7 +154,7 @@ export class ExtensionManagementChannel<
 		throw new Error('Invalid listen');
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	 
 	async call(context: any, command: string, args?: any): Promise<any> {
 		const uriTransformer: IURITransformer | null = this.getUriTransformer(context);
 		switch (command) {
@@ -505,12 +505,12 @@ export class ExtensionManagementChannelClient
 export class ExtensionTipsChannel implements IServerChannel {
 	constructor(private service: IExtensionTipsService) {}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	 
 	listen(context: any, event: string): Event<any> {
 		throw new Error('Invalid listen');
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	 
 	call(context: any, command: string, args?: any): Promise<any> {
 		switch (command) {
 			case 'getConfigBasedTips':

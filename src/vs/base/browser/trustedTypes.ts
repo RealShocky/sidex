@@ -23,7 +23,7 @@ export function createTrustedTypesPolicy<Options extends TrustedTypePolicyOption
 		}
 	}
 	try {
-		// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+		// eslint-disable-next-line local/code-no-any-casts
 		return (globalThis as any).trustedTypes?.createPolicy(policyName, policyOptions);
 	} catch (err) {
 		onUnexpectedError(err);

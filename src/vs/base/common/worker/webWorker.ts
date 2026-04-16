@@ -442,7 +442,7 @@ function propertyIsDynamicEvent(name: string): boolean {
 
 export interface IWebWorkerServerRequestHandler {
 	_requestHandlerBrand: void;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	 
 	[prop: string]: any;
 }
 

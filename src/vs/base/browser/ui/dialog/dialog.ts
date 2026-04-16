@@ -163,7 +163,7 @@ export class Dialog extends Disposable {
 			const customFooter = this.footerContainer.appendChild($('#monaco-dialog-footer.dialog-footer'));
 			this.options.renderFooter(customFooter);
 
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			for (const el of this.footerContainer.querySelectorAll('a')) {
 				el.tabIndex = 0;
 			}
@@ -207,7 +207,7 @@ export class Dialog extends Disposable {
 			const customBody = this.messageContainer.appendChild($('#monaco-dialog-message-body.dialog-message-body'));
 			this.options.renderBody(customBody);
 
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			for (const el of this.messageContainer.querySelectorAll('a')) {
 				el.tabIndex = 0;
 			}
@@ -440,7 +440,7 @@ export class Dialog extends Disposable {
 							let focusedIndex = -1;
 
 							if (this.messageContainer) {
-								// eslint-disable-next-line no-restricted-syntax
+								 
 								const links = this.messageContainer.querySelectorAll('a');
 								for (const link of links) {
 									focusableElements.push(link);
@@ -485,7 +485,7 @@ export class Dialog extends Disposable {
 							}
 
 							if (this.footerContainer) {
-								// eslint-disable-next-line no-restricted-syntax
+								 
 								const links = this.footerContainer.querySelectorAll('a');
 								for (const link of links) {
 									focusableElements.push(link);
@@ -664,7 +664,7 @@ export class Dialog extends Disposable {
 		this.element.style.border = border;
 
 		if (linkFgColor) {
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			for (const el of [
 				...this.messageContainer.getElementsByTagName('a'),
 				...(this.footerContainer?.getElementsByTagName('a') ?? [])

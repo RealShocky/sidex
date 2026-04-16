@@ -18,7 +18,9 @@ struct ExtHostSession {
     port: u16,
     session_id: String,
     started_at: Instant,
+    #[allow(dead_code)]
     init_data: ExtensionHostInitData,
+    #[allow(dead_code)]
     manifests: Vec<ExtensionManifest>,
     restart_count: u32,
 }
@@ -126,6 +128,7 @@ impl ExtensionPlatformSupervisor {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionTransportInfo {
@@ -133,6 +136,7 @@ pub struct ExtensionTransportInfo {
     pub endpoint: String,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionPathsInfo {
@@ -142,6 +146,7 @@ pub struct ExtensionPathsInfo {
     pub global_storage_dir: String,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionPlatformBootstrap {
@@ -153,6 +158,7 @@ pub struct ExtensionPlatformBootstrap {
     pub init_data_json: String,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionPlatformStatus {
@@ -165,6 +171,7 @@ pub struct ExtensionPlatformStatus {
     pub total_crashes: u32,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionManifestSummary {
@@ -287,17 +294,13 @@ fn spawn_host_process(
     if let Some(stderr) = child.stderr.take() {
         std::thread::spawn(move || {
             let reader = std::io::BufReader::new(stderr);
-            for line in reader.lines().flatten() {
-                log::info!("{}", line);
+            for line in reader.lines().map_while(Result::ok) {
+                log::info!("{line}");
             }
         });
     }
 
-    log::info!(
-        "extension host started on port {} (session={})",
-        port,
-        session_id
-    );
+    log::info!("extension host started on port {port} (session={session_id})");
 
     Ok(StartedSession {
         port,
@@ -308,6 +311,7 @@ fn spawn_host_process(
     })
 }
 
+#[allow(dead_code)]
 fn build_manifest_summaries(manifests: &[ExtensionManifest]) -> Vec<ExtensionManifestSummary> {
     manifests
         .iter()
@@ -329,6 +333,7 @@ fn build_manifest_summaries(manifests: &[ExtensionManifest]) -> Vec<ExtensionMan
         .collect()
 }
 
+#[allow(dead_code)]
 fn ensure_session(guard: &mut SupervisorState, app: &AppHandle) -> Result<(), String> {
     if guard.session.is_some() {
         return Ok(());
@@ -346,6 +351,7 @@ fn ensure_session(guard: &mut SupervisorState, app: &AppHandle) -> Result<(), St
     Ok(())
 }
 
+#[allow(dead_code)]
 fn kill_session(session: &mut ExtHostSession) {
     let _ = session.child.kill();
     let _ = session.child.wait();

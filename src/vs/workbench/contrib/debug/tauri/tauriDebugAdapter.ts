@@ -147,7 +147,7 @@ export class TauriExecutableDebugAdapter extends AbstractDebugAdapter {
 	private handleData(data: string): void {
 		this.rawData += data;
 
-		// eslint-disable-next-line no-constant-condition
+		 
 		while (true) {
 			if (this.contentLength >= 0) {
 				if (this.rawData.length >= this.contentLength) {
@@ -254,7 +254,7 @@ export class TauriSocketDebugAdapter extends AbstractDebugAdapter {
 	private handleData(data: string): void {
 		this.rawData += data;
 
-		// eslint-disable-next-line no-constant-condition
+		 
 		while (true) {
 			if (this.contentLength >= 0) {
 				if (this.rawData.length >= this.contentLength) {

@@ -1031,7 +1031,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		}
 
 		if (e.equals(KeyCode.UpArrow)) {
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			return stopPropagationForMultiLineUpwards(
 				e,
 				this._findInput.getValue(),
@@ -1040,7 +1040,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		}
 
 		if (e.equals(KeyCode.DownArrow)) {
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			return stopPropagationForMultiLineDownwards(
 				e,
 				this._findInput.getValue(),
@@ -1080,7 +1080,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		}
 
 		if (e.equals(KeyCode.UpArrow)) {
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			return stopPropagationForMultiLineUpwards(
 				e,
 				this._replaceInput.inputBox.value,
@@ -1089,7 +1089,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IVerticalSashL
 		}
 
 		if (e.equals(KeyCode.DownArrow)) {
-			// eslint-disable-next-line no-restricted-syntax
+			 
 			return stopPropagationForMultiLineDownwards(
 				e,
 				this._replaceInput.inputBox.value,

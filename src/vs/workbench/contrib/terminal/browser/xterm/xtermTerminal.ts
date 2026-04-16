@@ -626,7 +626,7 @@ export class XtermTerminal
 
 		this._attached = { container, options };
 		// Screen must be created at this point as xterm.open is called
-		// eslint-disable-next-line no-restricted-syntax
+		 
 		return this._attached?.container.querySelector('.xterm-screen')!;
 	}
 
@@ -1196,7 +1196,7 @@ export class XtermTerminal
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/naming-convention
+	 
 	_writeText(data: string): void {
 		this.raw.write(data);
 	}

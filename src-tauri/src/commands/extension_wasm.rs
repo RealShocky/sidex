@@ -2,7 +2,7 @@ use crate::commands::extension_platform::ExtensionManifest;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read as _, Write};
 use std::path::Path;
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::{Arc, Mutex};
@@ -168,7 +168,6 @@ impl TsServerProcess {
             }
 
             let mut body = vec![0u8; content_length];
-            use std::io::Read;
             if self.reader.read_exact(&mut body).is_err() {
                 log::warn!("[tsserver] failed to read {content_length} byte body");
                 return None;
@@ -278,9 +277,8 @@ impl LspServerProcess {
             loop {
                 let mut header = String::new();
                 match self.reader.read_line(&mut header) {
-                    Ok(0) => return None,
-                    Ok(_) => {}
-                    Err(_) => return None,
+                    Ok(1..) => {}
+                    Ok(_) | Err(_) => return None,
                 }
                 let line = header.trim();
                 if line.is_empty() {
@@ -295,7 +293,6 @@ impl LspServerProcess {
             }
 
             let mut body = vec![0u8; content_length];
-            use std::io::Read;
             if self.reader.read_exact(&mut body).is_err() {
                 return None;
             }
@@ -422,6 +419,7 @@ struct WasmHostState {
     next_lang_config_handle: u64,
 }
 
+#[allow(dead_code)]
 struct ScmSourceControl {
     id: String,
     label: String,
@@ -430,18 +428,21 @@ struct ScmSourceControl {
     count: u32,
 }
 
+#[allow(dead_code)]
 struct ProgressTask {
     message: Option<String>,
     increment: f64,
     cancelled: bool,
 }
 
+#[allow(dead_code)]
 struct TestController {
     id: String,
     label: String,
     items: Vec<wit_types::TestItem>,
 }
 
+#[allow(dead_code)]
 struct TestRun {
     controller_handle: u64,
     name: Option<String>,
@@ -470,7 +471,7 @@ fn is_within_workspace(path: &str, workspace_folders: &[String]) -> bool {
 fn require_workspace_path(uri: &str, workspace_folders: &[String]) -> Result<String, String> {
     let path = uri_to_path(uri).to_string();
     if !is_within_workspace(&path, workspace_folders) {
-        return Err(format!("access denied: path is outside workspace"));
+        return Err("access denied: path is outside workspace".to_string());
     }
     Ok(path)
 }
@@ -591,11 +592,9 @@ impl wit_bindings::sidex::extension::host_api::Host for WasmHostState {
     fn find_files(&mut self, pattern: String, max_results: u32) -> Vec<String> {
         let mut results = Vec::new();
         // Extract file extension from glob pattern like "**/*.css"
-        let ext_match = if let Some(star_dot) = pattern.rfind("*.") {
-            Some(pattern[star_dot + 1..].to_string())
-        } else {
-            None
-        };
+        let ext_match = pattern
+            .rfind("*.")
+            .map(|star_dot| pattern[star_dot + 1..].to_string());
 
         for folder in &self.workspace_folders {
             let walker = walkdir::WalkDir::new(folder)
@@ -643,22 +642,21 @@ impl wit_bindings::sidex::extension::host_api::Host for WasmHostState {
         std::fs::write(&path, content).map_err(|e| e.to_string())
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn stat_file(&mut self, uri: String) -> Result<wit_types::FileStat, String> {
+        use std::time::UNIX_EPOCH;
         let path = uri_to_path(&uri);
         let meta = std::fs::metadata(path).map_err(|e| e.to_string())?;
-        use std::time::UNIX_EPOCH;
         let ctime = meta
             .created()
             .ok()
             .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+            .map_or(0, |d| d.as_millis() as u64);
         let mtime = meta
             .modified()
             .ok()
             .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+            .map_or(0, |d| d.as_millis() as u64);
         let file_type = if meta.is_dir() {
             2
         } else if meta.is_symlink() {
@@ -848,7 +846,7 @@ impl wit_bindings::sidex::extension::host_api::Host for WasmHostState {
                     std::fs::write(&path, "").map_err(|e| e.to_string())?;
                 }
                 wit_types::WorkspaceEditKind::DeleteFile => {
-                    if entry.delete_options.as_ref().map_or(false, |o| o.recursive) {
+                    if entry.delete_options.as_ref().is_some_and(|o| o.recursive) {
                         let _ = std::fs::remove_dir_all(&path);
                     } else {
                         let _ = std::fs::remove_file(&path);
@@ -860,7 +858,7 @@ impl wit_bindings::sidex::extension::host_api::Host for WasmHostState {
                         std::fs::rename(&path, &new_path).map_err(|e| e.to_string())?;
                     }
                 }
-                _ => {}
+                wit_types::WorkspaceEditKind::TextEdit => {}
             }
         }
         Ok(true)
@@ -869,13 +867,13 @@ impl wit_bindings::sidex::extension::host_api::Host for WasmHostState {
         Ok(0)
     }
     fn on_did_create_files(&mut self, uris: Vec<String>) {
-        log::info!("[wasm-ext] files created: {:?}", uris);
+        log::info!("[wasm-ext] files created: {uris:?}");
     }
     fn on_did_rename_files(&mut self, old_uris: Vec<String>, new_uris: Vec<String>) {
-        log::info!("[wasm-ext] files renamed: {:?} -> {:?}", old_uris, new_uris);
+        log::info!("[wasm-ext] files renamed: {old_uris:?} -> {new_uris:?}");
     }
     fn on_did_delete_files(&mut self, uris: Vec<String>) {
-        log::info!("[wasm-ext] files deleted: {:?}", uris);
+        log::info!("[wasm-ext] files deleted: {uris:?}");
     }
     fn get_workspace_state(&mut self, key: String) -> Option<String> {
         self.workspace_state.get(&key).cloned()
@@ -951,6 +949,7 @@ impl wit_bindings::sidex::extension::host_api::Host for WasmHostState {
     fn get_document_version(&mut self, uri: String) -> Option<u32> {
         self.documents.get(&uri).map(|_| 1)
     }
+    #[allow(clippy::cast_possible_truncation)]
     fn get_document_line_count(&mut self, uri: String) -> Option<u32> {
         self.documents
             .get(&uri)
@@ -1314,10 +1313,10 @@ impl wit_bindings::sidex::extension::host_api::Host for WasmHostState {
         "en".to_string()
     }
     fn env_machine_id(&mut self) -> String {
-        hostname::get()
-            .ok()
-            .map(|h| h.to_string_lossy().to_string())
-            .unwrap_or_else(|| "unknown".to_string())
+        hostname::get().ok().map_or_else(
+            || "unknown".to_string(),
+            |h| h.to_string_lossy().to_string(),
+        )
     }
     fn env_session_id(&mut self) -> String {
         uuid::Uuid::new_v4().to_string()
@@ -1577,7 +1576,7 @@ impl wit_bindings::sidex::extension::host_api::Host for WasmHostState {
     // ── Telemetry ────────────────────────────────────────────────────────────
 
     fn telemetry_send_event(&mut self, event_name: String, data: Vec<(String, String)>) {
-        log::debug!("[wasm-ext][telemetry] {event_name}: {:?}", data);
+        log::debug!("[wasm-ext][telemetry] {event_name}: {data:?}");
     }
 }
 
@@ -1616,7 +1615,11 @@ impl WasmHostState {
             (doc.text.clone(), kind)
         } else {
             let disk_content = std::fs::read_to_string(file).unwrap_or_default();
-            let kind = if file.ends_with(".tsx") || file.ends_with(".jsx") {
+            let ext = std::path::Path::new(file)
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(str::to_ascii_lowercase);
+            let kind = if matches!(ext.as_deref(), Some("tsx" | "jsx")) {
                 "4"
             } else {
                 "3"
@@ -1646,6 +1649,7 @@ impl WasmHostState {
 
     /// Handle __sidex.lsp commands. Payload format:
     /// {"server":"rust-analyzer","cmd":"rust-analyzer","args":[],"method":"textDocument/completion","params":{...}}
+    #[allow(clippy::too_many_lines)]
     fn execute_lsp_command(&mut self, payload: &str) -> Result<String, String> {
         let server_name = extract_json_string(payload, "server")
             .ok_or_else(|| "lsp: missing server".to_string())?;
@@ -1659,8 +1663,7 @@ impl WasmHostState {
             let root = self
                 .workspace_folders
                 .first()
-                .map(|f| format!("file://{f}"))
-                .unwrap_or_else(|| "file:///tmp".to_string());
+                .map_or_else(|| "file:///tmp".to_string(), |f| format!("file://{f}"));
             let binary = find_binary(
                 &cmd,
                 &[
@@ -1676,7 +1679,7 @@ impl WasmHostState {
                 .iter()
                 .map(|a| {
                     if !a.starts_with('/') {
-                        let resolved = format!("{}/{}", cargo_dir, a);
+                        let resolved = format!("{cargo_dir}/{a}");
                         if std::path::Path::new(&resolved).exists() {
                             return resolved;
                         }
@@ -1684,7 +1687,10 @@ impl WasmHostState {
                     a.clone()
                 })
                 .collect();
-            let args_refs: Vec<&str> = resolved_args.iter().map(|s| s.as_str()).collect();
+            let args_refs: Vec<&str> = resolved_args
+                .iter()
+                .map(std::string::String::as_str)
+                .collect();
             let server = LspServerProcess::spawn(&server_name, &binary, &args_refs, &root)
                 .ok_or_else(|| format!("lsp: failed to start {server_name}"))?;
 
@@ -1703,34 +1709,25 @@ impl WasmHostState {
                 if !files.contains(&uri) {
                     let file_path = uri.strip_prefix("file://").unwrap_or(&uri);
                     let lang_id = extract_json_string(&td, "languageId").unwrap_or_else(|| {
-                        if file_path.ends_with(".rs") {
-                            "rust".to_string()
-                        } else if file_path.ends_with(".go") {
-                            "go".to_string()
-                        } else if file_path.ends_with(".py") {
-                            "python".to_string()
-                        } else if file_path.ends_with(".c") || file_path.ends_with(".h") {
-                            "c".to_string()
-                        } else if file_path.ends_with(".cpp") || file_path.ends_with(".cc") {
-                            "cpp".to_string()
-                        } else if file_path.ends_with(".css") {
-                            "css".to_string()
-                        } else if file_path.ends_with(".scss") {
-                            "scss".to_string()
-                        } else if file_path.ends_with(".less") {
-                            "less".to_string()
-                        } else if file_path.ends_with(".html") || file_path.ends_with(".htm") {
-                            "html".to_string()
-                        } else if file_path.ends_with(".json") {
-                            "json".to_string()
-                        } else if file_path.ends_with(".jsonc") {
-                            "jsonc".to_string()
-                        } else if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
-                            "typescript".to_string()
-                        } else if file_path.ends_with(".js") || file_path.ends_with(".jsx") {
-                            "javascript".to_string()
-                        } else {
-                            "plaintext".to_string()
+                        let ext = std::path::Path::new(file_path)
+                            .extension()
+                            .and_then(|e| e.to_str())
+                            .map(str::to_ascii_lowercase);
+                        match ext.as_deref() {
+                            Some("rs") => "rust".to_string(),
+                            Some("go") => "go".to_string(),
+                            Some("py") => "python".to_string(),
+                            Some("c" | "h") => "c".to_string(),
+                            Some("cpp" | "cc") => "cpp".to_string(),
+                            Some("css") => "css".to_string(),
+                            Some("scss") => "scss".to_string(),
+                            Some("less") => "less".to_string(),
+                            Some("html" | "htm") => "html".to_string(),
+                            Some("json") => "json".to_string(),
+                            Some("jsonc") => "jsonc".to_string(),
+                            Some("ts" | "tsx") => "typescript".to_string(),
+                            Some("js" | "jsx") => "javascript".to_string(),
+                            _ => "plaintext".to_string(),
                         }
                     });
                     let content = self
@@ -1788,8 +1785,7 @@ fn extract_json_string(json: &str, key: &str) -> Option<String> {
     let search = format!(r#""{key}":"#);
     let start = json.find(&search)? + search.len();
     let rest = json[start..].trim_start();
-    if rest.starts_with('"') {
-        let inner = &rest[1..];
+    if let Some(inner) = rest.strip_prefix('"') {
         let mut result = String::new();
         let mut chars = inner.chars();
         loop {
@@ -1963,7 +1959,9 @@ impl WasmExtensionRuntime {
                     },
                 );
             }
-            host_state.workspace_folders = guard.shared_workspace_folders.clone();
+            host_state
+                .workspace_folders
+                .clone_from(&guard.shared_workspace_folders);
         }
 
         let bindings = SidexExtension::instantiate(&mut store, &component, &guard.linker)
@@ -2002,7 +2000,10 @@ impl WasmExtensionRuntime {
     }
 
     pub fn loaded_extension_ids(&self) -> Vec<String> {
-        let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = self
+            .inner
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         guard.extensions.keys().cloned().collect()
     }
 
@@ -2405,7 +2406,7 @@ pub async fn wasm_provide_completion_all(
                             "documentation": item.documentation,
                             "insertText": item.insert_text.as_deref().unwrap_or(&item.label),
                             // "0" prefix so WASM extension results sort before other sources
-                            "sortText": item.sort_text.as_deref().map(|s| format!("0{s}")).unwrap_or_else(|| format!("0{}", item.label)),
+                            "sortText": item.sort_text.as_deref().map_or_else(|| format!("0{}", item.label), |s| format!("0{s}")),
                             "filterText": item.filter_text,
                         }));
                     }
@@ -2684,7 +2685,7 @@ pub async fn wasm_on_active_editor_changed(
 ) -> Result<(), String> {
     if let Ok(mut guard) = state.inner.lock() {
         for ext in guard.extensions.values_mut() {
-            ext.store.data_mut().active_editor_uri = uri.clone();
+            ext.store.data_mut().active_editor_uri.clone_from(&uri);
             let _ = ext
                 .bindings
                 .sidex_extension_extension_api()
@@ -2789,6 +2790,7 @@ pub async fn wasm_provide_declaration_all(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn wasm_provide_code_actions_all(
     uri: String,
     language_id: String,
@@ -2985,6 +2987,7 @@ pub async fn wasm_provide_folding_ranges_all(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn wasm_provide_inlay_hints_all(
     uri: String,
     language_id: String,
@@ -3171,6 +3174,7 @@ pub async fn wasm_provide_workspace_symbols_all(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn wasm_provide_range_formatting_all(
     uri: String,
     language_id: String,
@@ -3231,7 +3235,7 @@ pub async fn wasm_execute_command_all(
                 .call_execute_command(&mut ext.store, &command_id, &args)
             {
                 Ok(Ok(result)) => {
-                    results.push(serde_json::json!({ "extensionId": id, "result": result }))
+                    results.push(serde_json::json!({ "extensionId": id, "result": result }));
                 }
                 Ok(Err(e)) => log::warn!("[wasm] execute_command error from {id}: {e}"),
                 Err(e) => log::warn!("[wasm] execute_command trap from {id}: {e}"),

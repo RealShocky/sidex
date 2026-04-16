@@ -46,7 +46,7 @@ export function observeDevicePixelDimensions(
 		}
 	});
 	try {
-		// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+		// eslint-disable-next-line local/code-no-any-casts
 		observer.observe(element, { box: ['device-pixel-content-box'] } as any);
 	} catch {
 		observer.disconnect();

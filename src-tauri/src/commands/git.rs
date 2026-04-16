@@ -7,7 +7,7 @@ use super::validation::{validate_args, validate_path};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-/// Create a `Command` for git with CREATE_NO_WINDOW on Windows.
+/// Create a `Command` for git with `CREATE_NO_WINDOW` on Windows.
 fn git_command() -> Command {
     let cmd = Command::new("git");
     #[cfg(target_os = "windows")]
@@ -79,14 +79,14 @@ fn run_git(path: &str, args: &[&str]) -> Result<String, String> {
         .current_dir(path)
         .args(args)
         .output()
-        .map_err(|e| format!("Failed to execute git: {}", e))?;
+        .map_err(|e| format!("Failed to execute git: {e}"))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!("Git error: {}", stderr.trim()));
     }
 
-    String::from_utf8(output.stdout).map_err(|e| format!("Git output not valid UTF-8: {}", e))
+    String::from_utf8(output.stdout).map_err(|e| format!("Git output not valid UTF-8: {e}"))
 }
 
 #[tauri::command]
@@ -180,7 +180,7 @@ pub async fn git_log(path: String, limit: Option<u32>) -> Result<Vec<GitLogEntry
 #[tauri::command]
 pub async fn git_add(path: String, files: Vec<String>) -> Result<(), String> {
     let mut args = vec!["add", "--"];
-    let refs: Vec<&str> = files.iter().map(|s| s.as_str()).collect();
+    let refs: Vec<&str> = files.iter().map(std::string::String::as_str).collect();
     args.extend(refs);
     run_git(&path, &args)?;
     Ok(())
@@ -236,7 +236,7 @@ pub async fn git_is_repo(path: String) -> Result<bool, String> {
         .current_dir(&path)
         .args(["rev-parse", "--is-inside-work-tree"])
         .output()
-        .map_err(|e| format!("Failed to execute git: {}", e))?;
+        .map_err(|e| format!("Failed to execute git: {e}"))?;
 
     Ok(output.status.success())
 }
@@ -294,7 +294,7 @@ pub async fn git_stash(
         "pop" => "pop",
         "list" => "list",
         "drop" => "drop",
-        other => return Err(format!("Unknown stash action: {}", other)),
+        other => return Err(format!("Unknown stash action: {other}")),
     });
     if action == "push" {
         if let Some(ref m) = message {
@@ -356,7 +356,7 @@ pub async fn git_clone(url: String, path: String) -> Result<(), String> {
     if let Ok(parsed) = reqwest::Url::parse(&url) {
         match parsed.scheme() {
             "https" | "http" | "ssh" | "git" => {}
-            scheme => return Err(format!("git clone: blocked URL scheme '{}'", scheme)),
+            scheme => return Err(format!("git clone: blocked URL scheme '{scheme}'")),
         }
     }
 
@@ -371,7 +371,7 @@ pub async fn git_clone(url: String, path: String) -> Result<(), String> {
     let output = git_command()
         .args(["clone", "--no-checkout", &url, &path])
         .output()
-        .map_err(|e| format!("Failed to execute git clone: {}", e))?;
+        .map_err(|e| format!("Failed to execute git clone: {e}"))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -383,7 +383,7 @@ pub async fn git_clone(url: String, path: String) -> Result<(), String> {
         .current_dir(&path)
         .args(["-c", "core.hooksPath=/dev/null", "checkout"])
         .output()
-        .map_err(|e| format!("Failed to execute git checkout: {}", e))?;
+        .map_err(|e| format!("Failed to execute git checkout: {e}"))?;
 
     if checkout.status.success() {
         Ok(())
@@ -396,7 +396,7 @@ pub async fn git_clone(url: String, path: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn git_reset(path: String, files: Vec<String>) -> Result<(), String> {
     let mut cmd = vec!["reset", "HEAD", "--"];
-    let file_refs: Vec<&str> = files.iter().map(|s| s.as_str()).collect();
+    let file_refs: Vec<&str> = files.iter().map(std::string::String::as_str).collect();
     cmd.extend(file_refs);
     run_git(&path, &cmd)?;
     Ok(())
@@ -404,12 +404,12 @@ pub async fn git_reset(path: String, files: Vec<String>) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn git_show(path: String, file: String) -> Result<Vec<u8>, String> {
-    let rev_file = format!("HEAD:{}", file);
+    let rev_file = format!("HEAD:{file}");
     let output = git_command()
         .current_dir(&path)
         .args(["show", &rev_file])
         .output()
-        .map_err(|e| format!("Failed to execute git show: {}", e))?;
+        .map_err(|e| format!("Failed to execute git show: {e}"))?;
 
     if output.status.success() {
         Ok(output.stdout)
@@ -477,15 +477,15 @@ const ALLOWED_GIT_SUBCOMMANDS: &[&str] = &[
 ];
 
 fn validate_git_args(args: &[String]) -> Result<(), String> {
-    let subcommand = args.first().map(|s| s.as_str()).unwrap_or("");
+    let subcommand = args.first().map_or("", std::string::String::as_str);
     if !ALLOWED_GIT_SUBCOMMANDS.contains(&subcommand) {
-        return Err(format!("git subcommand '{}' is not allowed", subcommand));
+        return Err(format!("git subcommand '{subcommand}' is not allowed"));
     }
     for arg in args.iter().skip(1) {
         let lower = arg.to_lowercase();
         for blocked in BLOCKED_GIT_FLAGS {
-            if lower == *blocked || lower.starts_with(&format!("{}=", blocked)) {
-                return Err(format!("git flag '{}' is not allowed", arg));
+            if lower == *blocked || lower.starts_with(&format!("{blocked}=")) {
+                return Err(format!("git flag '{arg}' is not allowed"));
             }
         }
     }
@@ -495,7 +495,7 @@ fn validate_git_args(args: &[String]) -> Result<(), String> {
 #[tauri::command]
 pub async fn git_run(path: String, args: Vec<String>) -> Result<String, String> {
     validate_git_args(&args)?;
-    let arg_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    let arg_refs: Vec<&str> = args.iter().map(std::string::String::as_str).collect();
     run_git(&path, &arg_refs)
 }
 
@@ -555,7 +555,7 @@ pub async fn git_log_graph(path: String, limit: Option<u32>) -> Result<Vec<GitLo
 
         let parent_hashes: Vec<String> = parents_line
             .split_whitespace()
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .collect();
 
         entries.push(GitLogEntry {

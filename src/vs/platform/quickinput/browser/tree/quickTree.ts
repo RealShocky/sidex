@@ -118,7 +118,7 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 	}
 
 	// TODO: Fix the any casting
-	// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+	// eslint-disable-next-line local/code-no-any-casts
 	get checkedLeafItems(): readonly T[] {
 		return this.ui.tree.getCheckedLeafItems() as any as readonly T[];
 	}

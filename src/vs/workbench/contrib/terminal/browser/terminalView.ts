@@ -263,7 +263,7 @@ export class TerminalViewPane extends ViewPane {
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/naming-convention
+	 
 	protected override renderBody(container: HTMLElement): void {
 		super.renderBody(container);
 
@@ -334,7 +334,7 @@ export class TerminalViewPane extends ViewPane {
 		);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/naming-convention
+	 
 	protected override layoutBody(height: number, width: number): void {
 		super.layoutBody(height, width);
 		this._terminalTabbedView?.layout(width, height);
@@ -626,7 +626,7 @@ class SingleTerminalTabActionViewItem extends MenuEntryActionViewItem {
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/naming-convention
+	 
 	protected override updateLabel(e?: ITerminalInstance): void {
 		// Only update if it's the active instance
 		if (e && e !== this._terminalGroupService.activeInstance) {

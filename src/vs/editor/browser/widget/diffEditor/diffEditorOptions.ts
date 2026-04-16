@@ -264,7 +264,7 @@ function validateDiffEditorOptions(
 			)
 		},
 		hideUnchangedRegions: {
-			// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+			// eslint-disable-next-line local/code-no-any-casts
 			enabled: validateBooleanOption(
 				options.hideUnchangedRegions?.enabled ?? (options.experimental as any)?.collapseUnchangedRegions,
 				defaults.hideUnchangedRegions.enabled!

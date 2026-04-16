@@ -19,6 +19,7 @@ use tauri::State;
 
 const DEFAULT_MAX_FILE_SIZE: u64 = 1024 * 1024; // 1MB
 const DEFAULT_MAX_RESULTS: usize = 1000;
+#[allow(dead_code)]
 const BINARY_CHECK_BYTES: usize = 8192; // 8KB
 
 /// Options for building the index
@@ -112,13 +113,13 @@ struct FileInfo {
 
 /// Inverted index for fast text search
 pub struct InvertedIndex {
-    /// word -> list of (file_id, line, column)
+    /// word -> list of (`file_id`, line, column)
     word_index: DashMap<String, Vec<WordLocation>>,
     /// trigram -> list of words containing it (for fuzzy search)
     trigram_index: Option<DashMap<String, Vec<String>>>,
-    /// file_id -> file path mapping
+    /// `file_id` -> file path mapping
     files: DashMap<u32, FileInfo>,
-    /// path -> file_id reverse mapping
+    /// path -> `file_id` reverse mapping
     path_to_id: DashMap<String, u32>,
     /// Next available file ID
     next_file_id: AtomicU32,
@@ -200,9 +201,8 @@ impl InvertedIndex {
             return Ok(());
         }
 
-        let text = match String::from_utf8(content) {
-            Ok(s) => s,
-            Err(_) => return Ok(()),
+        let Ok(text) = String::from_utf8(content) else {
+            return Ok(());
         };
 
         self.remove_file(&path_str);
@@ -350,9 +350,8 @@ impl InvertedIndex {
             }
         }
 
-        let candidates = match candidate_words {
-            Some(c) => c,
-            None => return self.search_exact(query, options),
+        let Some(candidates) = candidate_words else {
+            return self.search_exact(query, options);
         };
 
         // Score and filter candidates
@@ -426,7 +425,7 @@ impl InvertedIndex {
         let regex = if options.case_sensitive {
             Regex::new(pattern).map_err(|e| e.to_string())?
         } else {
-            Regex::new(&format!("(?i){}", pattern)).map_err(|e| e.to_string())?
+            Regex::new(&format!("(?i){pattern}")).map_err(|e| e.to_string())?
         };
 
         let max_results = options.max_results.unwrap_or(DEFAULT_MAX_RESULTS);
@@ -439,7 +438,7 @@ impl InvertedIndex {
             .and_then(|p| globset::Glob::new(p).ok().map(|g| g.compile_matcher()));
 
         // Scan all indexed files (this is slower but necessary for regex)
-        for entry in self.files.iter() {
+        for entry in &self.files {
             if results.len() >= max_results {
                 break;
             }
@@ -531,6 +530,7 @@ fn calculate_score(query: &str, word: &str) -> f32 {
         return 0.0;
     }
 
+    #[allow(clippy::cast_precision_loss)]
     let similarity = 1.0 - (distance as f32 / max_len as f32);
     similarity * 0.5 // Scale down fuzzy matches
 }
@@ -573,11 +573,7 @@ fn levenshtein_distance(a: &str, b: &str) -> usize {
     for i in 1..=a_len {
         curr_row[0] = i;
         for j in 1..=b_len {
-            let cost = if a_chars[i - 1] == b_chars[j - 1] {
-                0
-            } else {
-                1
-            };
+            let cost = usize::from(a_chars[i - 1] != b_chars[j - 1]);
             curr_row[j] = (curr_row[j - 1] + 1)
                 .min(prev_row[j] + 1)
                 .min(prev_row[j - 1] + cost);
@@ -589,6 +585,7 @@ fn levenshtein_distance(a: &str, b: &str) -> usize {
 }
 
 /// Check if a file is binary by looking for null bytes in the first N bytes
+#[allow(dead_code)]
 fn is_binary_file(path: &Path) -> Result<bool, String> {
     use std::io::Read;
     let mut file = fs::File::open(path).map_err(|e| e.to_string())?;
@@ -611,6 +608,7 @@ fn get_line_at(path: &str, line_number: usize) -> Result<String, String> {
 }
 
 /// Collect all files to index in a directory
+#[allow(clippy::unnecessary_wraps)]
 fn collect_files(root: &Path, options: &IndexOptions) -> Result<Vec<std::path::PathBuf>, String> {
     let max_file_size = options.max_file_size.unwrap_or(DEFAULT_MAX_FILE_SIZE);
     let exclude_dirs: HashSet<String> = options
@@ -636,9 +634,8 @@ fn collect_files(root: &Path, options: &IndexOptions) -> Result<Vec<std::path::P
             !exclude_dirs.contains(name.as_ref())
         })
     {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(_) => continue,
+        let Ok(entry) = entry else {
+            continue;
         };
 
         if !entry.file_type().is_file() {
@@ -651,9 +648,9 @@ fn collect_files(root: &Path, options: &IndexOptions) -> Result<Vec<std::path::P
                 .path()
                 .extension()
                 .and_then(|e| e.to_str())
-                .map(|e| e.to_lowercase());
+                .map(str::to_lowercase);
 
-            if ext.map_or(true, |e| !extensions.contains(&e)) {
+            if ext.is_none_or(|e| !extensions.contains(&e)) {
                 continue;
             }
         }
@@ -686,6 +683,7 @@ impl IndexStore {
 
 /// Build index for a directory
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn index_build(
     state: State<'_, Arc<IndexStore>>,
     root: String,
@@ -695,7 +693,7 @@ pub fn index_build(
     let root_path = Path::new(&root);
 
     if !root_path.exists() {
-        return Err(format!("Root path does not exist: {}", root));
+        return Err(format!("Root path does not exist: {root}"));
     }
 
     // Clear existing index and set new root
@@ -717,6 +715,7 @@ pub fn index_build(
 
 /// Search the index
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn index_search(
     state: State<'_, Arc<IndexStore>>,
     query: String,
@@ -740,6 +739,7 @@ pub fn index_search(
 
 /// Update index for changed files
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn index_update(
     state: State<'_, Arc<IndexStore>>,
     changes: Vec<FileChange>,
@@ -766,12 +766,14 @@ pub fn index_update(
 
 /// Get index statistics
 #[tauri::command]
+#[allow(clippy::unnecessary_wraps, clippy::needless_pass_by_value)]
 pub fn index_stats(state: State<'_, Arc<IndexStore>>) -> Result<IndexStats, String> {
     Ok(state.index.stats())
 }
 
 /// Clear the index
 #[tauri::command]
+#[allow(clippy::unnecessary_wraps, clippy::needless_pass_by_value)]
 pub fn index_clear(state: State<'_, Arc<IndexStore>>) -> Result<(), String> {
     state.index.clear();
     Ok(())
@@ -783,8 +785,8 @@ mod tests {
 
     #[test]
     fn test_calculate_score() {
-        assert_eq!(calculate_score("hello", "hello"), 1.0);
-        assert_eq!(calculate_score("hel", "hello"), 0.9);
+        assert!((calculate_score("hello", "hello") - 1.0).abs() < f32::EPSILON);
+        assert!((calculate_score("hel", "hello") - 0.9).abs() < f32::EPSILON);
         assert!(calculate_score("ell", "hello") > 0.5);
     }
 

@@ -39,7 +39,7 @@ export class ExtensionGalleryManifestIPCService
 		super(productService);
 		server.registerChannel('extensionGalleryManifest', {
 			listen: () => Event.None,
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			call: async (context: any, command: string, args?: any): Promise<any> => {
 				switch (command) {
 					case 'setExtensionGalleryManifest':

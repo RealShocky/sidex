@@ -12,6 +12,7 @@ pub struct PathInfo {
 }
 
 /// Parse and normalize a path
+#[allow(clippy::unnecessary_wraps, clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn parse_path(path: String) -> Result<PathInfo, String> {
     let p = Path::new(&path);
@@ -64,10 +65,10 @@ fn normalize_path(path: &str) -> String {
             std::path::Component::ParentDir => {
                 // Handle ..
                 if let Some(last) = components.last() {
-                    if *last != ".." {
-                        components.pop();
-                    } else {
+                    if *last == ".." {
                         components.push(std::ffi::OsStr::new(".."));
+                    } else {
+                        components.pop();
                     }
                 }
             }
@@ -87,6 +88,7 @@ fn normalize_path(path: &str) -> String {
 }
 
 /// Join paths
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn join_paths(base: String, segments: Vec<String>) -> String {
     let mut path = PathBuf::from(base);
@@ -97,6 +99,7 @@ pub fn join_paths(base: String, segments: Vec<String>) -> String {
 }
 
 /// Get relative path from base to target
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn relative_path(base: String, target: String) -> Result<String, String> {
     let base_path = Path::new(&base);
@@ -108,6 +111,7 @@ pub fn relative_path(base: String, target: String) -> Result<String, String> {
 }
 
 /// Check if path matches glob pattern
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn glob_match(pattern: String, path: String) -> bool {
     glob::Pattern::new(&pattern)
@@ -116,6 +120,7 @@ pub fn glob_match(pattern: String, path: String) -> bool {
 }
 
 /// Get file extension category
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn ext_category(path: String) -> String {
     let ext = Path::new(&path)
@@ -151,18 +156,20 @@ pub fn ext_category(path: String) -> String {
 }
 
 /// Check if file is binary (simple heuristic)
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn is_binary_file(path: String) -> Result<bool, String> {
     use std::io::Read;
-    let mut file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
+    let mut file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {e}"))?;
     let mut buf = [0u8; 8192];
     let n = file
         .read(&mut buf)
-        .map_err(|e| format!("Failed to read: {}", e))?;
+        .map_err(|e| format!("Failed to read: {e}"))?;
     Ok(buf[..n].contains(&0))
 }
 
 /// Get common parent directory of multiple paths
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn common_parent(paths: Vec<String>) -> Result<String, String> {
     if paths.is_empty() {

@@ -57,13 +57,14 @@ pub async fn install_extension(vsix_path: String) -> Result<InstalledExtension, 
             if let Some(parent) = target.parent() {
                 fs::create_dir_all(parent).ok();
             }
+            #[allow(clippy::cast_possible_truncation)]
             let mut buf = Vec::with_capacity(entry.size() as usize);
             entry
                 .read_to_end(&mut buf)
                 .map_err(|e| format!("read {rel}: {e}"))?;
             fs::write(&target, &buf).map_err(|e| format!("write {rel}: {e}"))?;
             #[cfg(unix)]
-            if entry.unix_mode().map_or(false, |m| m & 0o111 != 0) || rel.starts_with("bin/") {
+            if entry.unix_mode().is_some_and(|m| m & 0o111 != 0) || rel.starts_with("bin/") {
                 use std::os::unix::fs::PermissionsExt;
                 fs::set_permissions(&target, fs::Permissions::from_mode(0o755)).ok();
             }
@@ -108,13 +109,14 @@ fn extract_vsix_bytes(data: &[u8]) -> Result<InstalledExtension, String> {
             if let Some(parent) = target.parent() {
                 fs::create_dir_all(parent).ok();
             }
+            #[allow(clippy::cast_possible_truncation)]
             let mut buf = Vec::with_capacity(entry.size() as usize);
             entry
                 .read_to_end(&mut buf)
                 .map_err(|e| format!("read {rel}: {e}"))?;
             fs::write(&target, &buf).map_err(|e| format!("write {rel}: {e}"))?;
             #[cfg(unix)]
-            if entry.unix_mode().map_or(false, |m| m & 0o111 != 0) || rel.starts_with("bin/") {
+            if entry.unix_mode().is_some_and(|m| m & 0o111 != 0) || rel.starts_with("bin/") {
                 use std::os::unix::fs::PermissionsExt;
                 fs::set_permissions(&target, fs::Permissions::from_mode(0o755)).ok();
             }

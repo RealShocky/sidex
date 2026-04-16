@@ -592,7 +592,7 @@ interface IMetaData<T, U> {
 	type?: IParserType<U>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IMetaData array holds heterogeneous parser types
+ 
 function _isEmpty<T>(
 	this: void,
 	value: T | undefined,
@@ -615,7 +615,7 @@ function _isEmpty<T>(
 	return true;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IMetaData array holds heterogeneous parser types
+ 
 function _assignProperties<T>(
 	this: void,
 	target: T | undefined,
@@ -643,7 +643,7 @@ function _assignProperties<T>(
 	return target;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IMetaData array holds heterogeneous parser types
+ 
 function _fillProperties<T>(
 	this: void,
 	target: T | undefined,
@@ -672,7 +672,7 @@ function _fillProperties<T>(
 	return target;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IMetaData array holds heterogeneous parser types
+ 
 function _fillDefaults<T>(
 	this: void,
 	target: T | undefined,
@@ -709,7 +709,7 @@ function _fillDefaults<T>(
 	return target;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IMetaData array holds heterogeneous parser types
+ 
 function _freeze<T>(this: void, target: T, properties: IMetaData<T, any>[]): Readonly<T> | undefined {
 	if (target === undefined || target === null) {
 		return undefined;
@@ -1140,7 +1140,7 @@ namespace CommandConfiguration {
 		linux?: IBaseCommandConfigurationShape;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IMetaData array holds heterogeneous parser types
+	 
 	const properties: IMetaData<Tasks.ICommandConfiguration, any>[] = [
 		{ property: 'runtime' },
 		{ property: 'name' },
@@ -1554,7 +1554,7 @@ namespace DependsOrder {
 }
 
 namespace ConfigurationProperties {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IMetaData array holds heterogeneous parser types
+	 
 	const properties: IMetaData<Tasks.IConfigurationProperties, any>[] = [
 		{ property: 'name' },
 		{ property: 'identifier' },

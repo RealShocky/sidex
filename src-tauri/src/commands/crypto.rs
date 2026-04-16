@@ -5,6 +5,7 @@ use std::io::Read;
 
 const HASH_BUF_SIZE: usize = 64 * 1024;
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn sha256_hash(data: Vec<u8>) -> String {
     let mut hasher = Sha256::new();
@@ -12,9 +13,10 @@ pub fn sha256_hash(data: Vec<u8>) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+#[allow(clippy::needless_pass_by_value, clippy::large_stack_arrays)]
 #[tauri::command]
 pub fn sha256_file(path: String) -> Result<String, String> {
-    let file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
+    let file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {e}"))?;
     let mut reader = std::io::BufReader::with_capacity(HASH_BUF_SIZE, file);
     let mut hasher = Sha256::new();
     let mut buf = [0u8; HASH_BUF_SIZE];
@@ -22,7 +24,7 @@ pub fn sha256_file(path: String) -> Result<String, String> {
     loop {
         let n = reader
             .read(&mut buf)
-            .map_err(|e| format!("Failed to read file: {}", e))?;
+            .map_err(|e| format!("Failed to read file: {e}"))?;
         if n == 0 {
             break;
         }
@@ -32,14 +34,16 @@ pub fn sha256_file(path: String) -> Result<String, String> {
     Ok(format!("{:x}", hasher.finalize()))
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn md5_hash(data: Vec<u8>) -> String {
     format!("{:x}", md5::compute(&data))
 }
 
+#[allow(clippy::needless_pass_by_value, clippy::large_stack_arrays)]
 #[tauri::command]
 pub fn md5_file(path: String) -> Result<String, String> {
-    let file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
+    let file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {e}"))?;
     let mut reader = std::io::BufReader::with_capacity(HASH_BUF_SIZE, file);
     let mut context = md5::Context::new();
     let mut buf = [0u8; HASH_BUF_SIZE];
@@ -47,7 +51,7 @@ pub fn md5_file(path: String) -> Result<String, String> {
     loop {
         let n = reader
             .read(&mut buf)
-            .map_err(|e| format!("Failed to read file: {}", e))?;
+            .map_err(|e| format!("Failed to read file: {e}"))?;
         if n == 0 {
             break;
         }
@@ -70,32 +74,36 @@ pub fn uuid_v4() -> String {
     uuid::Uuid::new_v4().to_string()
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn base64_encode(data: Vec<u8>) -> String {
     use base64::{engine::general_purpose::STANDARD, Engine as _};
     STANDARD.encode(&data)
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn base64_decode(text: String) -> Result<Vec<u8>, String> {
     use base64::{engine::general_purpose::STANDARD, Engine as _};
     STANDARD
         .decode(&text)
-        .map_err(|e| format!("Base64 decode error: {}", e))
+        .map_err(|e| format!("Base64 decode error: {e}"))
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn base64_encode_urlsafe(data: Vec<u8>) -> String {
     use base64::{engine::general_purpose::URL_SAFE, Engine as _};
     URL_SAFE.encode(&data)
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn base64_decode_urlsafe(text: String) -> Result<Vec<u8>, String> {
     use base64::{engine::general_purpose::URL_SAFE, Engine as _};
     URL_SAFE
         .decode(&text)
-        .map_err(|e| format!("Base64 decode error: {}", e))
+        .map_err(|e| format!("Base64 decode error: {e}"))
 }
 
 #[derive(Debug, Serialize)]
@@ -106,12 +114,13 @@ pub struct FileHashInfo {
     pub size: u64,
 }
 
+#[allow(clippy::needless_pass_by_value, clippy::large_stack_arrays)]
 #[tauri::command]
 pub fn file_hashes(path: String) -> Result<FileHashInfo, String> {
-    let file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
+    let file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {e}"))?;
     let file_size = file
         .metadata()
-        .map_err(|e| format!("Failed to get metadata: {}", e))?
+        .map_err(|e| format!("Failed to get metadata: {e}"))?
         .len();
 
     let mut reader = std::io::BufReader::with_capacity(HASH_BUF_SIZE, file);
@@ -122,7 +131,7 @@ pub fn file_hashes(path: String) -> Result<FileHashInfo, String> {
     loop {
         let n = reader
             .read(&mut buf)
-            .map_err(|e| format!("Failed to read file: {}", e))?;
+            .map_err(|e| format!("Failed to read file: {e}"))?;
         if n == 0 {
             break;
         }

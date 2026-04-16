@@ -24,7 +24,7 @@ fn validate_url(url: &str) -> Result<reqwest::Url, String> {
 
     match parsed.scheme() {
         "http" | "https" => {}
-        s => return Err(format!("blocked scheme: {}", s)),
+        s => return Err(format!("blocked scheme: {s}")),
     }
 
     let host = parsed.host_str().ok_or("missing host")?;
@@ -57,22 +57,21 @@ fn validate_url(url: &str) -> Result<reqwest::Url, String> {
 /// - An exact match for an allowed host
 /// - A proper subdomain (e.g., "extension.openvsx.org" matches "openvsx.org")
 fn is_host_allowed(url: &reqwest::Url) -> bool {
-    let host = match url.host_str() {
-        Some(h) => h,
-        None => return false,
+    let Some(host) = url.host_str() else {
+        return false;
     };
     // SECURITY: Normalize to lowercase for case-insensitive comparison
     // Prevents bypass via case variation (e.g., "OpenVSX.org" vs "openvsx.org")
     let host = host.to_ascii_lowercase();
 
-    for allowed in ALLOWED_HOSTS.iter() {
+    for allowed in ALLOWED_HOSTS {
         let allowed = allowed.to_ascii_lowercase();
         if host == allowed {
             return true;
         }
         // Check if host is a subdomain of allowed
         // e.g., "ext.openvsx.org" ends with ".openvsx.org"
-        if host.ends_with(&format!(".{}", allowed)) {
+        if host.ends_with(&format!(".{allowed}")) {
             return true;
         }
     }
@@ -85,25 +84,27 @@ fn build_client() -> Result<reqwest::Client, String> {
         .connect_timeout(Duration::from_secs(10))
         .redirect(reqwest::redirect::Policy::limited(5))
         .build()
-        .map_err(|e| format!("failed to build HTTP client: {}", e))
+        .map_err(|e| format!("failed to build HTTP client: {e}"))
 }
 
+#[allow(clippy::cast_possible_truncation)]
 async fn read_body_limited(response: reqwest::Response) -> Result<Vec<u8>, String> {
     if let Some(len) = response.content_length() {
         if len as usize > MAX_RESPONSE_BYTES {
-            return Err(format!("response too large: {} bytes", len));
+            return Err(format!("response too large: {len} bytes"));
         }
     }
     let bytes = response
         .bytes()
         .await
-        .map_err(|e| format!("read failed: {}", e))?;
+        .map_err(|e| format!("read failed: {e}"))?;
     if bytes.len() > MAX_RESPONSE_BYTES {
         return Err(format!("response too large: {} bytes", bytes.len()));
     }
     Ok(bytes.to_vec())
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub async fn fetch_url(url: String) -> Result<Vec<u8>, String> {
     let parsed = validate_url(&url)?;
@@ -112,10 +113,11 @@ pub async fn fetch_url(url: String) -> Result<Vec<u8>, String> {
         .get(parsed)
         .send()
         .await
-        .map_err(|e| format!("fetch failed: {}", e))?;
+        .map_err(|e| format!("fetch failed: {e}"))?;
     read_body_limited(response).await
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub async fn fetch_url_text(url: String) -> Result<String, String> {
     let parsed = validate_url(&url)?;
@@ -124,11 +126,12 @@ pub async fn fetch_url_text(url: String) -> Result<String, String> {
         .get(parsed)
         .send()
         .await
-        .map_err(|e| format!("fetch failed: {}", e))?;
+        .map_err(|e| format!("fetch failed: {e}"))?;
     let bytes = read_body_limited(response).await?;
-    String::from_utf8(bytes).map_err(|e| format!("invalid UTF-8: {}", e))
+    String::from_utf8(bytes).map_err(|e| format!("invalid UTF-8: {e}"))
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub async fn proxy_request(
     url: String,
@@ -165,10 +168,10 @@ pub async fn proxy_request(
     let response = req
         .send()
         .await
-        .map_err(|e| format!("proxy request failed: {}", e))?;
+        .map_err(|e| format!("proxy request failed: {e}"))?;
 
     let bytes = read_body_limited(response).await?;
-    String::from_utf8(bytes).map_err(|e| format!("invalid UTF-8 in proxy response: {}", e))
+    String::from_utf8(bytes).map_err(|e| format!("invalid UTF-8 in proxy response: {e}"))
 }
 
 #[derive(Serialize)]
@@ -178,6 +181,7 @@ pub struct ProxyResponse {
     pub body_b64: String,
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub async fn proxy_request_full(
     url: String,
@@ -204,7 +208,7 @@ pub async fn proxy_request_full(
     };
 
     for (key, value) in &headers {
-        if key.to_ascii_lowercase() == "accept-encoding" {
+        if key.eq_ignore_ascii_case("accept-encoding") {
             continue;
         }
         req = req.header(key.as_str(), value.as_str());
@@ -217,7 +221,7 @@ pub async fn proxy_request_full(
     let response = req
         .send()
         .await
-        .map_err(|e| format!("proxy request failed: {}", e))?;
+        .map_err(|e| format!("proxy request failed: {e}"))?;
 
     let status = response.status().as_u16();
     let mut resp_headers: HashMap<String, String> = HashMap::new();

@@ -8,7 +8,7 @@ import { OffsetRange } from '../ranges/offsetRange.js';
 import { StringText } from '../text/abstractText.js';
 import { BaseEdit, BaseReplacement } from './edit.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export abstract class BaseStringEdit<
 	T extends BaseStringReplacement<T> = BaseStringReplacement<any>,
 	TEdit extends BaseStringEdit<T, TEdit> = BaseStringEdit<any, any>
@@ -23,7 +23,7 @@ export abstract class BaseStringEdit<
 		}
 		let result = edits[0];
 		for (let i = 1; i < edits.length; i++) {
-			// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+			// eslint-disable-next-line local/code-no-any-casts
 			result = result.compose(edits[i]) as any;
 		}
 		return result;
@@ -194,7 +194,7 @@ export abstract class BaseStringEdit<
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export abstract class BaseStringReplacement<
 	T extends BaseStringReplacement<T> = BaseStringReplacement<any>
 > extends BaseReplacement<T> {

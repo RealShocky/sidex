@@ -900,9 +900,9 @@ class PolicyDiagnosticsAction extends Action2 {
 		const excludedProperties = configurationRegistry.getExcludedConfigurationProperties();
 
 		if (policyConfigurations.size > 0) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const appliedPolicy: Array<{ name: string; key: string; property: any; inspection: any }> = [];
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			const notAppliedPolicy: Array<{ name: string; key: string; property: any; inspection: any }> = [];
 
 			for (const [policyName, settingKey] of policyConfigurations) {
@@ -933,10 +933,10 @@ class PolicyDiagnosticsAction extends Action2 {
 				try {
 					const policyServiceConstructorName = policyService.constructor.name;
 					if (policyServiceConstructorName === 'MultiplexPolicyService') {
-						// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+						// eslint-disable-next-line local/code-no-any-casts
 						const multiplexService = policyService as any;
 						if (multiplexService.policyServices) {
-							// eslint-disable-next-line @typescript-eslint/no-explicit-any
+							 
 							const componentServices = multiplexService.policyServices as ReadonlyArray<any>;
 							for (const service of componentServices) {
 								if (service.getPolicyValue && service.getPolicyValue(policyName) !== undefined) {

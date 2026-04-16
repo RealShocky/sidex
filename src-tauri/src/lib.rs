@@ -18,6 +18,7 @@ use tauri::menu::{Menu, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
 use tauri::Manager;
 
 #[cfg(target_os = "macos")]
+#[allow(clippy::too_many_lines)]
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let file_menu = SubmenuBuilder::new(app, "File")
         .item(
@@ -362,6 +363,7 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[allow(clippy::too_many_lines)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -410,9 +412,12 @@ pub fn run() {
                 )?;
             }
 
-            #[cfg(feature = "devtools")]
-            if let Some(window) = app.get_webview_window("main") {
-                window.open_devtools();
+            #[allow(unexpected_cfgs)]
+            {
+                #[cfg(feature = "devtools")]
+                if let Some(window) = app.get_webview_window("main") {
+                    window.open_devtools();
+                }
             }
 
             Ok(())
@@ -421,9 +426,8 @@ pub fn run() {
             let id = event.id().0.as_str();
             if let Some(window) = app.get_webview_window("main") {
                 let escaped = id.replace('\\', "\\\\").replace('\'', "\\'");
-                let _ = window.eval(&format!(
-                    "window.dispatchEvent(new CustomEvent('sidex-native-menu', {{ detail: '{}' }}))",
-                    escaped
+                let _ = window.eval(format!(
+                    "window.dispatchEvent(new CustomEvent('sidex-native-menu', {{ detail: '{escaped}' }}))"
                 ));
             }
         })

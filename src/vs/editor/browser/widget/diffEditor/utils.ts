@@ -226,7 +226,7 @@ function easeOutExpo(t: number, b: number, c: number, d: number): number {
 }
 
 export function deepMerge<T extends {}>(source1: T, source2: Partial<T>): T {
-	// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+	// eslint-disable-next-line local/code-no-any-casts
 	const result = {} as any as T;
 	for (const key in source1) {
 		result[key] = source1[key];
@@ -234,10 +234,10 @@ export function deepMerge<T extends {}>(source1: T, source2: Partial<T>): T {
 	for (const key in source2) {
 		const source2Value = source2[key];
 		if (typeof result[key] === 'object' && source2Value && typeof source2Value === 'object') {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 			result[key] = deepMerge<any>(result[key], source2Value);
 		} else {
-			// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+			// eslint-disable-next-line local/code-no-any-casts
 			result[key] = source2Value as any;
 		}
 	}
@@ -347,14 +347,14 @@ export function applyStyle(
 		/** @description applyStyle */
 		for (let [key, val] of Object.entries(style)) {
 			if (val && typeof val === 'object' && 'read' in val) {
-				// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+				// eslint-disable-next-line local/code-no-any-casts
 				val = val.read(reader) as any;
 			}
 			if (typeof val === 'number') {
 				val = `${val}px`;
 			}
 			key = key.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
-			// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
+			// eslint-disable-next-line local/code-no-any-casts
 			domNode.style[key as any] = val as any;
 		}
 	});

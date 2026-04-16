@@ -11,16 +11,17 @@ pub struct FileSummary {
     pub line_endings: String,
 }
 
+#[allow(clippy::needless_pass_by_value, clippy::large_stack_arrays)]
 #[tauri::command]
 pub fn count_lines(path: String) -> Result<usize, String> {
-    let mut file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
+    let mut file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {e}"))?;
     let mut buf = [0u8; 32768];
     let mut count = 0usize;
 
     loop {
         let n = file
             .read(&mut buf)
-            .map_err(|e| format!("Failed to read: {}", e))?;
+            .map_err(|e| format!("Failed to read: {e}"))?;
         if n == 0 {
             break;
         }
@@ -30,9 +31,10 @@ pub fn count_lines(path: String) -> Result<usize, String> {
     Ok(count)
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn file_summary(path: String) -> Result<FileSummary, String> {
-    let content = std::fs::read(&path).map_err(|e| format!("Failed to read file: {}", e))?;
+    let content = std::fs::read(&path).map_err(|e| format!("Failed to read file: {e}"))?;
 
     let has_bom = content.starts_with(&[0xEF, 0xBB, 0xBF]);
     let text_start = if has_bom { 3 } else { 0 };
@@ -119,17 +121,20 @@ pub fn file_summary(path: String) -> Result<FileSummary, String> {
     })
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn normalize_line_endings(text: String) -> String {
     text.replace("\r\n", "\n").replace('\r', "\n")
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn to_crlf(text: String) -> String {
     let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
     normalized.replace('\n', "\r\n")
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn trim_trailing_whitespace(text: String) -> String {
     let mut result = String::with_capacity(text.len());
@@ -142,6 +147,7 @@ pub fn trim_trailing_whitespace(text: String) -> String {
     result
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn ensure_final_newline(mut text: String) -> String {
     if text.is_empty() || text.ends_with('\n') {
@@ -157,6 +163,7 @@ pub struct WordBoundary {
     pub end: usize,
 }
 
+#[allow(clippy::needless_pass_by_value, clippy::unnecessary_wraps)]
 #[tauri::command]
 pub fn get_word_boundaries(line: String, column: usize) -> Result<WordBoundary, String> {
     let bytes = line.as_bytes();
@@ -191,6 +198,7 @@ pub struct DiffLine {
     pub content: String,
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn simple_diff(old_text: String, new_text: String) -> Vec<DiffLine> {
     let old_lines: Vec<&str> = old_text.lines().collect();
@@ -227,40 +235,36 @@ pub fn simple_diff(old_text: String, new_text: String) -> Vec<DiffLine> {
     result
 }
 
+#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn file_hash(path: String) -> Result<String, String> {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
 
-    let content = std::fs::read(&path).map_err(|e| format!("Failed to read file: {}", e))?;
+    let content = std::fs::read(&path).map_err(|e| format!("Failed to read file: {e}"))?;
     let mut hasher = DefaultHasher::new();
     content.hash(&mut hasher);
     Ok(format!("{:x}", hasher.finish()))
 }
 
+#[allow(clippy::needless_pass_by_value, clippy::large_stack_arrays)]
 #[tauri::command]
 pub fn files_equal(path1: String, path2: String) -> Result<bool, String> {
-    let meta1 = std::fs::metadata(&path1).map_err(|e| format!("Failed to stat file 1: {}", e))?;
-    let meta2 = std::fs::metadata(&path2).map_err(|e| format!("Failed to stat file 2: {}", e))?;
+    let meta1 = std::fs::metadata(&path1).map_err(|e| format!("Failed to stat file 1: {e}"))?;
+    let meta2 = std::fs::metadata(&path2).map_err(|e| format!("Failed to stat file 2: {e}"))?;
 
     if meta1.len() != meta2.len() {
         return Ok(false);
     }
 
-    let mut f1 =
-        std::fs::File::open(&path1).map_err(|e| format!("Failed to open file 1: {}", e))?;
-    let mut f2 =
-        std::fs::File::open(&path2).map_err(|e| format!("Failed to open file 2: {}", e))?;
+    let mut f1 = std::fs::File::open(&path1).map_err(|e| format!("Failed to open file 1: {e}"))?;
+    let mut f2 = std::fs::File::open(&path2).map_err(|e| format!("Failed to open file 2: {e}"))?;
     let mut buf1 = [0u8; 32768];
     let mut buf2 = [0u8; 32768];
 
     loop {
-        let n1 = f1
-            .read(&mut buf1)
-            .map_err(|e| format!("Read error: {}", e))?;
-        let n2 = f2
-            .read(&mut buf2)
-            .map_err(|e| format!("Read error: {}", e))?;
+        let n1 = f1.read(&mut buf1).map_err(|e| format!("Read error: {e}"))?;
+        let n2 = f2.read(&mut buf2).map_err(|e| format!("Read error: {e}"))?;
         if n1 != n2 || buf1[..n1] != buf2[..n2] {
             return Ok(false);
         }

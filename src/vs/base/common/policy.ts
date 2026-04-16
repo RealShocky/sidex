@@ -4,7 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { localize } from '../../nls.js';
-import { IPolicyData } from './defaultAccount.js';
+export interface IPolicyData {
+	readonly chat_preview_features_enabled?: boolean;
+	readonly chat_agent_enabled?: boolean;
+}
 
 /**
  * System-wide policy file path for Linux systems.
