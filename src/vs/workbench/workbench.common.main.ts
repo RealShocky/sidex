@@ -182,14 +182,10 @@ import './contrib/preferences/browser/preferencesSearch.js';
 // Performance — removed: SideX has its own performance monitoring
 // import './contrib/performance/browser/performance.contribution.js';
 
-// Notebook
-import './contrib/notebook/browser/notebook.contribution.js';
-
-// Interactive
-import './contrib/interactive/browser/interactive.contribution.js';
-
-// repl
-import './contrib/replNotebook/browser/repl.contribution.js';
+// SideX: removed — notebook, interactive, REPL (huge, ~80K lines, not needed)
+// import './contrib/notebook/browser/notebook.contribution.js';
+// import './contrib/interactive/browser/interactive.contribution.js';
+// import './contrib/replNotebook/browser/repl.contribution.js';
 
 // Testing
 import './contrib/testing/browser/testing.contribution.js';
@@ -205,9 +201,9 @@ import './contrib/files/browser/explorerViewlet.js';
 import './contrib/files/browser/fileActions.contribution.js';
 import './contrib/files/browser/files.contribution.js';
 
-// Bulk Edit
-import './contrib/bulkEdit/browser/bulkEditService.js';
-import './contrib/bulkEdit/browser/preview/bulkEdit.contribution.js';
+// SideX: removed — bulk edit handled by Rust
+// import './contrib/bulkEdit/browser/bulkEditService.js';
+// import './contrib/bulkEdit/browser/preview/bulkEdit.contribution.js';
 
 // Search
 import './contrib/search/browser/search.contribution.js';
@@ -234,20 +230,20 @@ import './contrib/debug/browser/debugViewlet.js';
 // Markers
 import './contrib/markers/browser/markers.contribution.js';
 
-// Process Explorer
-import './contrib/processExplorer/browser/processExplorer.contribution.js';
+// SideX: removed — process explorer not needed
+// import './contrib/processExplorer/browser/processExplorer.contribution.js';
 
-// Merge Editor
-import './contrib/mergeEditor/browser/mergeEditor.contribution.js';
+// SideX: removed — merge editor not needed
+// import './contrib/mergeEditor/browser/mergeEditor.contribution.js';
 
-// Multi Diff Editor
-import './contrib/multiDiffEditor/browser/multiDiffEditor.contribution.js';
+// SideX: removed — multi diff editor not needed
+// import './contrib/multiDiffEditor/browser/multiDiffEditor.contribution.js';
 
 // Commands
 import './contrib/commands/common/commands.contribution.js';
 
-// Comments
-import './contrib/comments/browser/comments.contribution.js';
+// SideX: removed — comments (PR comments, not core)
+// import './contrib/comments/browser/comments.contribution.js';
 
 // URL Support
 import './contrib/url/browser/url.contribution.js';
@@ -256,13 +252,14 @@ import './contrib/url/browser/url.contribution.js';
 import './contrib/webview/browser/webview.contribution.js';
 import './contrib/webviewPanel/browser/webviewPanel.contribution.js';
 import './contrib/webviewView/browser/webviewView.contribution.js';
-import './contrib/customEditor/browser/customEditor.contribution.js';
+// SideX: removed — custom editor providers
+// import './contrib/customEditor/browser/customEditor.contribution.js';
 
-// Image Preview
-import './contrib/imagePreview/browser/imagePreview.contribution.js';
+// SideX: removed — image preview
+// import './contrib/imagePreview/browser/imagePreview.contribution.js';
 
-// External Uri Opener
-import './contrib/externalUriOpener/common/externalUriOpener.contribution.js';
+// SideX: removed — external URI opener
+// import './contrib/externalUriOpener/common/externalUriOpener.contribution.js';
 
 // Extensions Management
 import './contrib/extensions/browser/extensions.contribution.js';
@@ -286,11 +283,11 @@ import './contrib/externalTerminal/browser/externalTerminal.contribution.js';
 // Tasks
 import './contrib/tasks/browser/task.contribution.js';
 
-// Emmet
-import './contrib/emmet/browser/emmet.contribution.js';
+// SideX: removed — emmet handled by sidex-editor
+// import './contrib/emmet/browser/emmet.contribution.js';
 
-// CodeEditor Contributions
-import './contrib/codeEditor/browser/codeEditor.contribution.js';
+// SideX: removed — code editor contributions handled by Rust
+// import './contrib/codeEditor/browser/codeEditor.contribution.js';
 
 // Markdown
 import './contrib/markdown/browser/markdown.contribution.js';
@@ -310,8 +307,8 @@ import './contrib/folding/browser/folding.contribution.js';
 // Limit Indicator
 import './contrib/limitIndicator/browser/limitIndicator.contribution.js';
 
-// Inlay Hint Accessibility
-import './contrib/inlayHints/browser/inlayHintsAccessibilty.js';
+// SideX: removed — inlay hints handled by Rust
+// import './contrib/inlayHints/browser/inlayHintsAccessibilty.js';
 
 // Themes
 import './contrib/themes/browser/themes.contribution.js';
@@ -326,39 +323,40 @@ import './contrib/themes/browser/themes.contribution.js';
 // Welcome — removed: SideX has its own welcome experience
 // import './contrib/welcomeGettingStarted/browser/gettingStarted.contribution.js';
 // import './contrib/welcomeWalkthrough/browser/walkThrough.contribution.js';
-import './contrib/welcomeViews/common/viewsWelcome.contribution.js';
-import './contrib/welcomeViews/common/newFile.contribution.js';
+// SideX: removed — welcome views
+// import './contrib/welcomeViews/common/viewsWelcome.contribution.js';
+// import './contrib/welcomeViews/common/newFile.contribution.js';
 
-// Call Hierarchy
-import './contrib/callHierarchy/browser/callHierarchy.contribution.js';
+// SideX: removed — call hierarchy handled by sidex-lsp
+// import './contrib/callHierarchy/browser/callHierarchy.contribution.js';
 
-// Type Hierarchy
-import './contrib/typeHierarchy/browser/typeHierarchy.contribution.js';
+// SideX: removed — type hierarchy handled by sidex-lsp
+// import './contrib/typeHierarchy/browser/typeHierarchy.contribution.js';
 
-// Outline
-import './contrib/codeEditor/browser/outline/documentSymbolsOutline.js';
-import './contrib/outline/browser/outline.contribution.js';
+// SideX: removed — outline handled by sidex-workspace
+// import './contrib/codeEditor/browser/outline/documentSymbolsOutline.js';
+// import './contrib/outline/browser/outline.contribution.js';
 
-// Language Detection
-import './contrib/languageDetection/browser/languageDetection.contribution.js';
+// SideX: removed — language detection
+// import './contrib/languageDetection/browser/languageDetection.contribution.js';
 
 // Language Status
 import './contrib/languageStatus/browser/languageStatus.contribution.js';
 
-// Authentication
-import './contrib/authentication/browser/authentication.contribution.js';
+// SideX: removed — authentication contribution
+// import './contrib/authentication/browser/authentication.contribution.js';
 
-// User Data Profiles
-import './contrib/userDataProfile/browser/userDataProfile.contribution.js';
+// User Data Profiles — removed: SideX handles user data profiles in Rust backend
+// import './contrib/userDataProfile/browser/userDataProfile.contribution.js';
 
-// Code Actions
-import './contrib/codeActions/browser/codeActions.contribution.js';
+// SideX: removed — code actions handled by sidex-editor
+// import './contrib/codeActions/browser/codeActions.contribution.js';
 
-// Timeline
-import './contrib/timeline/browser/timeline.contribution.js';
+// SideX: removed — timeline
+// import './contrib/timeline/browser/timeline.contribution.js';
 
-// Local History
-import './contrib/localHistory/browser/localHistory.contribution.js';
+// Local History — removed: SideX: handled by Rust backend
+// import './contrib/localHistory/browser/localHistory.contribution.js';
 
 // Workspace
 import './contrib/workspace/browser/workspace.contribution.js';
@@ -366,29 +364,29 @@ import './contrib/workspace/browser/workspace.contribution.js';
 // Workspaces
 import './contrib/workspaces/browser/workspaces.contribution.js';
 
-// List
-import './contrib/list/browser/list.contribution.js';
+// SideX: removed — list widget contributions
+// import './contrib/list/browser/list.contribution.js';
 
-// Accessibility Signals
-import './contrib/accessibilitySignals/browser/accessibilitySignal.contribution.js';
+// SideX: removed — accessibility signals
+// import './contrib/accessibilitySignals/browser/accessibilitySignal.contribution.js';
 
-// Bracket Pair Colorizer 2 Telemetry
-import './contrib/bracketPairColorizer2Telemetry/browser/bracketPairColorizer2Telemetry.contribution.js';
+// SideX: removed — bracket pair colorizer telemetry
+// import './contrib/bracketPairColorizer2Telemetry/browser/bracketPairColorizer2Telemetry.contribution.js';
 
-// Accessibility
-import './contrib/accessibility/browser/accessibility.contribution.js';
+// SideX: removed — accessibility handled by Rust
+// import './contrib/accessibility/browser/accessibility.contribution.js';
 
-// Metered Connection
-import './contrib/meteredConnection/browser/meteredConnection.contribution.js';
+// SideX: removed — metered connection
+// import './contrib/meteredConnection/browser/meteredConnection.contribution.js';
 
-// Share
-import './contrib/share/browser/share.contribution.js';
+// SideX: removed — share feature
+// import './contrib/share/browser/share.contribution.js';
 
-// Synchronized Scrolling
-import './contrib/scrollLocking/browser/scrollLocking.contribution.js';
+// SideX: removed — synchronized scrolling
+// import './contrib/scrollLocking/browser/scrollLocking.contribution.js';
 
-// Drop or paste into
-import './contrib/dropOrPasteInto/browser/dropOrPasteInto.contribution.js';
+// SideX: removed — drop/paste into
+// import './contrib/dropOrPasteInto/browser/dropOrPasteInto.contribution.js';
 
 // Opener
 import './contrib/opener/browser/opener.contribution.js';

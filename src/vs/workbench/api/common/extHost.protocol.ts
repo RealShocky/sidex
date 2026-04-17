@@ -187,10 +187,6 @@ export interface IMainContext extends IRPCProtocol {}
 
 // --- main thread
 
-export interface MainThreadGitExtensionShape extends IDisposable {
-	$onDidChangeRepository(handle: number): Promise<void>;
-}
-
 export interface MainThreadClipboardShape extends IDisposable {
 	$readText(): Promise<string>;
 	$writeText(value: string): Promise<void>;
@@ -4017,84 +4013,11 @@ export interface MainThreadTestingShape {
 	$markTestRetired(testIds: string[] | undefined): void;
 }
 
-export interface GitRefQueryDto {
-	readonly contains?: string;
-	readonly count?: number;
-	readonly pattern?: string | string[];
-	readonly sort?: 'alphabetically' | 'committerdate' | 'creatordate';
-}
-
-export enum GitRefTypeDto {
-	Head,
-	RemoteHead,
-	Tag
-}
-
-export interface GitRefDto {
-	readonly id: string;
-	readonly name: string;
-	readonly type: GitRefTypeDto;
-	readonly revision: string;
-}
-
-export interface GitChangeDto {
-	readonly uri: UriComponents;
-	readonly originalUri: UriComponents | undefined;
-	readonly modifiedUri: UriComponents | undefined;
-}
-
-export interface GitDiffChangeDto extends GitChangeDto {
-	readonly insertions: number;
-	readonly deletions: number;
-}
-
-export interface GitRepositoryStateDto {
-	readonly HEAD?: GitBranchDto;
-	readonly mergeChanges: readonly GitChangeDto[];
-	readonly indexChanges: readonly GitChangeDto[];
-	readonly workingTreeChanges: readonly GitChangeDto[];
-	readonly untrackedChanges: readonly GitChangeDto[];
-}
-
-export interface GitBranchDto {
-	readonly name?: string;
-	readonly commit?: string;
-	readonly type: GitRefTypeDto;
-	readonly remote?: string;
-	readonly base?: GitBaseRefDto;
-	readonly upstream?: GitUpstreamRefDto;
-	readonly ahead?: number;
-	readonly behind?: number;
-}
-
-export interface GitBaseRefDto {
-	readonly name: string;
-	readonly isProtected: boolean;
-}
-
-export interface GitUpstreamRefDto {
-	readonly remote: string;
-	readonly name: string;
-	readonly commit?: string;
-}
-
-export interface ExtHostGitExtensionShape {
-	$isGitExtensionAvailable(): Promise<boolean>;
-	$openRepository(
-		root: UriComponents
-	): Promise<{ handle: number; rootUri: UriComponents; state: GitRepositoryStateDto } | undefined>;
-	$getRefs(handle: number, query: GitRefQueryDto, token?: CancellationToken): Promise<GitRefDto[]>;
-	$getRepositoryState(handle: number): Promise<GitRepositoryStateDto | undefined>;
-	$diffBetweenWithStats(handle: number, ref1: string, ref2: string, path?: string): Promise<GitDiffChangeDto[]>;
-	$diffBetweenWithStats2(handle: number, ref: string, path?: string): Promise<GitDiffChangeDto[]>;
-}
-
 // --- proxy identifiers
 
 export const MainContext = {
 	MainThreadAuthentication: createProxyIdentifier<MainThreadAuthenticationShape>('MainThreadAuthentication'),
 	MainThreadBulkEdits: createProxyIdentifier<MainThreadBulkEditsShape>('MainThreadBulkEdits'),
-	MainThreadGitExtension: createProxyIdentifier<MainThreadGitExtensionShape>('MainThreadGitExtension'),
 	MainThreadClipboard: createProxyIdentifier<MainThreadClipboardShape>('MainThreadClipboard'),
 	MainThreadCommands: createProxyIdentifier<MainThreadCommandsShape>('MainThreadCommands'),
 	MainThreadComments: createProxyIdentifier<MainThreadCommentsShape>('MainThreadComments'),
@@ -4246,6 +4169,5 @@ export const ExtHostContext = {
 	ExtHostMeteredConnection: createProxyIdentifier<ExtHostMeteredConnectionShape>('ExtHostMeteredConnection'),
 	ExtHostLocalization: createProxyIdentifier<ExtHostLocalizationShape>('ExtHostLocalization'),
 	ExtHostDataChannels: createProxyIdentifier<ExtHostDataChannelsShape>('ExtHostDataChannels'),
-	ExtHostGitExtension: createProxyIdentifier<ExtHostGitExtensionShape>('ExtHostGitExtension'),
 	ExtHostBrowsers: createProxyIdentifier<ExtHostBrowsersShape>('ExtHostBrowsers')
 };
