@@ -61,7 +61,7 @@ import {
 } from '../../../platform/terminal/common/terminal.js';
 import { TerminalDataBufferer } from '../../../platform/terminal/common/terminalDataBuffering.js';
 import { ThemeColor } from '../../../base/common/themables.js';
-import { Promises } from '../../../base/common/async.js';
+import '../../../base/common/async.js';
 import { EditorGroupColumn } from '../../services/editor/common/editorGroupColumn.js';
 import { TerminalCompletionList, TerminalQuickFix, ViewColumn } from './extHostTypeConverters.js';
 import { IExtHostCommands } from './extHostCommands.js';
@@ -976,43 +976,17 @@ export abstract class BaseExtHostTerminalService
 	public async $provideTerminalQuickFixes(
 		id: string,
 		matchResult: TerminalCommandMatchResultDto
-	): Promise<
-		| (ITerminalQuickFixTerminalCommandDto | ITerminalQuickFixOpenerDto | ICommandDto)[]
-		| ITerminalQuickFixTerminalCommandDto
-		| ITerminalQuickFixOpenerDto
-		| ICommandDto
-		| undefined
-	> {
+	): Promise<(ITerminalQuickFixTerminalCommandDto | ITerminalQuickFixOpenerDto | ICommandDto)[] | ITerminalQuickFixTerminalCommandDto | ITerminalQuickFixOpenerDto | ICommandDto | undefined> {
 		const token = new CancellationTokenSource().token;
-		if (token.isCancellationRequested) {
-			return;
-		}
+		if (token.isCancellationRequested) { return; }
 		const provider = this._quickFixProviders.get(id);
-		if (!provider) {
-			return;
-		}
+		if (!provider) { return; }
 		const quickFixes = await provider.provideTerminalQuickFixes(matchResult, token);
-		if (quickFixes === null || (Array.isArray(quickFixes) && quickFixes.length === 0)) {
-			return undefined;
-		}
-
+		if (quickFixes === null || (Array.isArray(quickFixes) && quickFixes.length === 0)) { return undefined; }
 		const store = new DisposableStore();
 		this._lastQuickFixCommands.value = store;
-
-		// Single
-		if (!Array.isArray(quickFixes)) {
-			return quickFixes ? TerminalQuickFix.from(quickFixes, this._extHostCommands.converter, store) : undefined;
-		}
-
-		// Many
-		const result = [];
-		for (const fix of quickFixes) {
-			const converted = TerminalQuickFix.from(fix, this._extHostCommands.converter, store);
-			if (converted) {
-				result.push(converted);
-			}
-		}
-		return result;
+		if (!Array.isArray(quickFixes)) { return quickFixes ? TerminalQuickFix.from(quickFixes, this._extHostCommands.converter, store) : undefined; }
+		return quickFixes.map(fix => TerminalQuickFix.from(fix, this._extHostCommands.converter, store)).filter((c): c is NonNullable<typeof c> => !!c);
 	}
 
 	public async $createContributedProfileTerminal(
@@ -1078,14 +1052,8 @@ export abstract class BaseExtHostTerminalService
 
 	public async $provideLinks(terminalId: number, line: string): Promise<ITerminalLinkDto[]> {
 		const terminal = this.getTerminalById(terminalId);
-		if (!terminal) {
-			return [];
-		}
-
-		// Discard any cached links the terminal has been holding, currently all links are released
-		// when new links are provided.
+		if (!terminal) { return []; }
 		this._terminalLinkCache.delete(terminalId);
-
 		const oldToken = this._terminalLinkCancellationSource.get(terminalId);
 		oldToken?.dispose(true);
 		const cancellationSource = new CancellationTokenSource();
@@ -1093,50 +1061,20 @@ export abstract class BaseExtHostTerminalService
 
 		const result: ITerminalLinkDto[] = [];
 		const context: vscode.TerminalLinkContext = { terminal: terminal.value, line };
-		const promises: vscode.ProviderResult<{ provider: vscode.TerminalLinkProvider; links: vscode.TerminalLink[] }>[] =
-			[];
+		const cacheLinkMap = new Map<number, ICachedLinkEntry>();
 
 		for (const provider of this._linkProviders) {
-			promises.push(
-				Promises.withAsyncBody(async r => {
-					cancellationSource.token.onCancellationRequested(() => r({ provider, links: [] }));
-					const links = (await provider.provideTerminalLinks(context, cancellationSource.token)) || [];
-					if (!cancellationSource.token.isCancellationRequested) {
-						r({ provider, links });
-					}
-				})
-			);
+			if (cancellationSource.token.isCancellationRequested) { return []; }
+			try {
+				const links = (await provider.provideTerminalLinks(context, cancellationSource.token)) || [];
+				for (const link of links) {
+					const id = nextLinkId++;
+					result.push({ id, startIndex: link.startIndex, length: link.length, label: link.tooltip });
+					cacheLinkMap.set(id, { provider, link });
+				}
+			} catch { }
 		}
-
-		const provideResults = await Promise.all(promises);
-
-		if (cancellationSource.token.isCancellationRequested) {
-			return [];
-		}
-
-		const cacheLinkMap = new Map<number, ICachedLinkEntry>();
-		for (const provideResult of provideResults) {
-			if (provideResult && provideResult.links.length > 0) {
-				result.push(
-					...provideResult.links.map(providerLink => {
-						const link = {
-							id: nextLinkId++,
-							startIndex: providerLink.startIndex,
-							length: providerLink.length,
-							label: providerLink.tooltip
-						};
-						cacheLinkMap.set(link.id, {
-							provider: provideResult.provider,
-							link: providerLink
-						});
-						return link;
-					})
-				);
-			}
-		}
-
 		this._terminalLinkCache.set(terminalId, cacheLinkMap);
-
 		return result;
 	}
 
@@ -1250,288 +1188,94 @@ export abstract class BaseExtHostTerminalService
 	}
 }
 
-/**
- * Unified environment variable collection carrying information for all scopes, for a specific extension.
- */
 class UnifiedEnvironmentVariableCollection extends Disposable {
 	readonly map: Map<string, IEnvironmentVariableMutator> = new Map();
 	private readonly scopedCollections: Map<string, ScopedEnvironmentVariableCollection> = new Map();
 	readonly descriptionMap: Map<string, IEnvironmentVariableCollectionDescription> = new Map();
 	private _persistent: boolean = true;
 
-	public get persistent(): boolean {
-		return this._persistent;
-	}
-	public set persistent(value: boolean) {
-		this._persistent = value;
-		this._onDidChangeCollection.fire();
-	}
+	public get persistent(): boolean { return this._persistent; }
+	public set persistent(value: boolean) { this._persistent = value; this._onDidChangeCollection.fire(); }
 
 	protected readonly _onDidChangeCollection: Emitter<void> = this._register(new Emitter<void>());
-	get onDidChangeCollection(): Event<void> {
-		return this._onDidChangeCollection && this._onDidChangeCollection.event;
+	get onDidChangeCollection(): Event<void> { return this._onDidChangeCollection && this._onDidChangeCollection.event; }
+
+	constructor(serialized?: ISerializableEnvironmentVariableCollection) { super(); this.map = new Map(serialized); }
+
+	getScopedEnvironmentVariableCollection(scope: vscode.EnvironmentVariableScope | undefined): IEnvironmentVariableCollection {
+		const key = this._scopeKey(scope);
+		let c = this.scopedCollections.get(key);
+		if (!c) { c = new ScopedEnvironmentVariableCollection(this, scope); this.scopedCollections.set(key, c); this._register(c.onDidChangeCollection(() => this._onDidChangeCollection.fire())); }
+		return c;
 	}
 
-	constructor(serialized?: ISerializableEnvironmentVariableCollection) {
-		super();
-		this.map = new Map(serialized);
+	replace(variable: string, value: string, options: vscode.EnvironmentVariableMutatorOptions | undefined, scope: vscode.EnvironmentVariableScope | undefined): void {
+		this._set(variable, { value, type: EnvironmentVariableMutatorType.Replace, options: options ?? { applyAtProcessCreation: true }, scope });
+	}
+	append(variable: string, value: string, options: vscode.EnvironmentVariableMutatorOptions | undefined, scope: vscode.EnvironmentVariableScope | undefined): void {
+		this._set(variable, { value, type: EnvironmentVariableMutatorType.Append, options: options ?? { applyAtProcessCreation: true }, scope });
+	}
+	prepend(variable: string, value: string, options: vscode.EnvironmentVariableMutatorOptions | undefined, scope: vscode.EnvironmentVariableScope | undefined): void {
+		this._set(variable, { value, type: EnvironmentVariableMutatorType.Prepend, options: options ?? { applyAtProcessCreation: true }, scope });
 	}
 
-	getScopedEnvironmentVariableCollection(
-		scope: vscode.EnvironmentVariableScope | undefined
-	): IEnvironmentVariableCollection {
-		const scopedCollectionKey = this.getScopeKey(scope);
-		let scopedCollection = this.scopedCollections.get(scopedCollectionKey);
-		if (!scopedCollection) {
-			scopedCollection = new ScopedEnvironmentVariableCollection(this, scope);
-			this.scopedCollections.set(scopedCollectionKey, scopedCollection);
-			this._register(scopedCollection.onDidChangeCollection(() => this._onDidChangeCollection.fire()));
-		}
-		return scopedCollection;
-	}
-
-	replace(
-		variable: string,
-		value: string,
-		options: vscode.EnvironmentVariableMutatorOptions | undefined,
-		scope: vscode.EnvironmentVariableScope | undefined
-	): void {
-		this._setIfDiffers(variable, {
-			value,
-			type: EnvironmentVariableMutatorType.Replace,
-			options: options ?? { applyAtProcessCreation: true },
-			scope
-		});
-	}
-
-	append(
-		variable: string,
-		value: string,
-		options: vscode.EnvironmentVariableMutatorOptions | undefined,
-		scope: vscode.EnvironmentVariableScope | undefined
-	): void {
-		this._setIfDiffers(variable, {
-			value,
-			type: EnvironmentVariableMutatorType.Append,
-			options: options ?? { applyAtProcessCreation: true },
-			scope
-		});
-	}
-
-	prepend(
-		variable: string,
-		value: string,
-		options: vscode.EnvironmentVariableMutatorOptions | undefined,
-		scope: vscode.EnvironmentVariableScope | undefined
-	): void {
-		this._setIfDiffers(variable, {
-			value,
-			type: EnvironmentVariableMutatorType.Prepend,
-			options: options ?? { applyAtProcessCreation: true },
-			scope
-		});
-	}
-
-	private _setIfDiffers(
-		variable: string,
-		mutator: vscode.EnvironmentVariableMutator & { scope: vscode.EnvironmentVariableScope | undefined }
-	): void {
-		if (
-			mutator.options &&
-			mutator.options.applyAtProcessCreation === false &&
-			!mutator.options.applyAtShellIntegration
-		) {
+	private _set(variable: string, mutator: vscode.EnvironmentVariableMutator & { scope: vscode.EnvironmentVariableScope | undefined }): void {
+		if (mutator.options && mutator.options.applyAtProcessCreation === false && !mutator.options.applyAtShellIntegration) {
 			throw new Error('EnvironmentVariableMutatorOptions must apply at either process creation or shell integration');
 		}
-		const key = this.getKey(variable, mutator.scope);
-		const current = this.map.get(key);
-		const newOptions = mutator.options
-			? {
-					applyAtProcessCreation: mutator.options.applyAtProcessCreation ?? false,
-					applyAtShellIntegration: mutator.options.applyAtShellIntegration ?? false
-				}
-			: {
-					applyAtProcessCreation: true
-				};
-		if (
-			!current ||
-			current.value !== mutator.value ||
-			current.type !== mutator.type ||
-			current.options?.applyAtProcessCreation !== newOptions.applyAtProcessCreation ||
-			current.options?.applyAtShellIntegration !== newOptions.applyAtShellIntegration ||
-			current.scope?.workspaceFolder?.index !== mutator.scope?.workspaceFolder?.index
-		) {
-			const key = this.getKey(variable, mutator.scope);
-			const value: IEnvironmentVariableMutator = {
-				variable,
-				...mutator,
-				options: newOptions
-			};
-			this.map.set(key, value);
-			this._onDidChangeCollection.fire();
-		}
+		const key = this._key(variable, mutator.scope);
+		const opts = mutator.options ? { applyAtProcessCreation: mutator.options.applyAtProcessCreation ?? false, applyAtShellIntegration: mutator.options.applyAtShellIntegration ?? false } : { applyAtProcessCreation: true };
+		this.map.set(key, { variable, ...mutator, options: opts });
+		this._onDidChangeCollection.fire();
 	}
 
-	get(
-		variable: string,
-		scope: vscode.EnvironmentVariableScope | undefined
-	): vscode.EnvironmentVariableMutator | undefined {
-		const key = this.getKey(variable, scope);
-		const value = this.map.get(key);
-		// TODO: Set options to defaults if needed
-		return value ? convertMutator(value) : undefined;
+	get(variable: string, scope: vscode.EnvironmentVariableScope | undefined): vscode.EnvironmentVariableMutator | undefined {
+		const v = this.map.get(this._key(variable, scope));
+		return v ? convertMutator(v) : undefined;
 	}
-
-	private getKey(variable: string, scope: vscode.EnvironmentVariableScope | undefined) {
-		const scopeKey = this.getScopeKey(scope);
-		return scopeKey.length ? `${variable}:::${scopeKey}` : variable;
-	}
-
-	private getScopeKey(scope: vscode.EnvironmentVariableScope | undefined): string {
-		return this.getWorkspaceKey(scope?.workspaceFolder) ?? '';
-	}
-
-	private getWorkspaceKey(workspaceFolder: vscode.WorkspaceFolder | undefined): string | undefined {
-		return workspaceFolder ? workspaceFolder.uri.toString() : undefined;
-	}
-
-	public getVariableMap(
-		scope: vscode.EnvironmentVariableScope | undefined
-	): Map<string, vscode.EnvironmentVariableMutator> {
+	getVariableMap(scope: vscode.EnvironmentVariableScope | undefined): Map<string, vscode.EnvironmentVariableMutator> {
 		const map = new Map<string, vscode.EnvironmentVariableMutator>();
-		for (const [_, value] of this.map) {
-			if (this.getScopeKey(value.scope) === this.getScopeKey(scope)) {
-				map.set(value.variable, convertMutator(value));
-			}
-		}
+		for (const [_, value] of this.map) { if (this._scopeKey(value.scope) === this._scopeKey(scope)) { map.set(value.variable, convertMutator(value)); } }
 		return map;
 	}
-
-	delete(variable: string, scope: vscode.EnvironmentVariableScope | undefined): void {
-		const key = this.getKey(variable, scope);
-		this.map.delete(key);
-		this._onDidChangeCollection.fire();
-	}
-
+	delete(variable: string, scope: vscode.EnvironmentVariableScope | undefined): void { this.map.delete(this._key(variable, scope)); this._onDidChangeCollection.fire(); }
 	clear(scope: vscode.EnvironmentVariableScope | undefined): void {
-		if (scope?.workspaceFolder) {
-			for (const [key, mutator] of this.map) {
-				if (mutator.scope?.workspaceFolder?.index === scope.workspaceFolder.index) {
-					this.map.delete(key);
-				}
-			}
-			this.clearDescription(scope);
-		} else {
-			this.map.clear();
-			this.descriptionMap.clear();
-		}
+		if (scope?.workspaceFolder) { for (const [key, m] of this.map) { if (m.scope?.workspaceFolder?.index === scope.workspaceFolder.index) { this.map.delete(key); } } } else { this.map.clear(); this.descriptionMap.clear(); }
 		this._onDidChangeCollection.fire();
 	}
-
-	setDescription(
-		description: string | vscode.MarkdownString | undefined,
-		scope: vscode.EnvironmentVariableScope | undefined
-	): void {
-		const key = this.getScopeKey(scope);
-		const current = this.descriptionMap.get(key);
-		if (!current || current.description !== description) {
-			let descriptionStr: string | undefined;
-			if (typeof description === 'string') {
-				descriptionStr = description;
-			} else {
-				// Only take the description before the first `\n\n`, so that the description doesn't mess up the UI
-				descriptionStr = description?.value.split('\n\n')[0];
-			}
-			const value: IEnvironmentVariableCollectionDescription = { description: descriptionStr, scope };
-			this.descriptionMap.set(key, value);
-			this._onDidChangeCollection.fire();
-		}
+	setDescription(description: string | vscode.MarkdownString | undefined, scope: vscode.EnvironmentVariableScope | undefined): void {
+		const key = this._scopeKey(scope);
+		const descStr = typeof description === 'string' ? description : description?.value.split('\n\n')[0];
+		this.descriptionMap.set(key, { description: descStr, scope });
+		this._onDidChangeCollection.fire();
 	}
+	getDescription(scope: vscode.EnvironmentVariableScope | undefined): string | vscode.MarkdownString | undefined { return this.descriptionMap.get(this._scopeKey(scope))?.description; }
 
-	public getDescription(
-		scope: vscode.EnvironmentVariableScope | undefined
-	): string | vscode.MarkdownString | undefined {
-		const key = this.getScopeKey(scope);
-		return this.descriptionMap.get(key)?.description;
-	}
-
-	private clearDescription(scope: vscode.EnvironmentVariableScope | undefined): void {
-		const key = this.getScopeKey(scope);
-		this.descriptionMap.delete(key);
-	}
+	private _key(variable: string, scope: vscode.EnvironmentVariableScope | undefined) { const sk = this._scopeKey(scope); return sk.length ? `${variable}:::${sk}` : variable; }
+	private _scopeKey(scope: vscode.EnvironmentVariableScope | undefined): string { return scope?.workspaceFolder ? scope.workspaceFolder.uri.toString() : ''; }
 }
 
 class ScopedEnvironmentVariableCollection implements IEnvironmentVariableCollection {
-	public get persistent(): boolean {
-		return this.collection.persistent;
-	}
-	public set persistent(value: boolean) {
-		this.collection.persistent = value;
-	}
-
+	public get persistent(): boolean { return this.collection.persistent; }
+	public set persistent(value: boolean) { this.collection.persistent = value; }
 	protected readonly _onDidChangeCollection = new Emitter<void>();
-	get onDidChangeCollection(): Event<void> {
-		return this._onDidChangeCollection && this._onDidChangeCollection.event;
-	}
+	get onDidChangeCollection(): Event<void> { return this._onDidChangeCollection && this._onDidChangeCollection.event; }
 
-	constructor(
-		private readonly collection: UnifiedEnvironmentVariableCollection,
-		private readonly scope: vscode.EnvironmentVariableScope | undefined
-	) {}
+	constructor(private readonly collection: UnifiedEnvironmentVariableCollection, private readonly scope: vscode.EnvironmentVariableScope | undefined) {}
 
-	getScoped(scope: vscode.EnvironmentVariableScope | undefined) {
-		return this.collection.getScopedEnvironmentVariableCollection(scope);
+	getScoped(scope: vscode.EnvironmentVariableScope | undefined) { return this.collection.getScopedEnvironmentVariableCollection(scope); }
+	replace(variable: string, value: string, options?: vscode.EnvironmentVariableMutatorOptions): void { this.collection.replace(variable, value, options, this.scope); }
+	append(variable: string, value: string, options?: vscode.EnvironmentVariableMutatorOptions): void { this.collection.append(variable, value, options, this.scope); }
+	prepend(variable: string, value: string, options?: vscode.EnvironmentVariableMutatorOptions): void { this.collection.prepend(variable, value, options, this.scope); }
+	get(variable: string): vscode.EnvironmentVariableMutator | undefined { return this.collection.get(variable, this.scope); }
+	forEach(callback: (variable: string, mutator: vscode.EnvironmentVariableMutator, collection: vscode.EnvironmentVariableCollection) => unknown, thisArg?: unknown): void {
+		this.collection.getVariableMap(this.scope).forEach((value, variable) => callback.call(thisArg, variable, value, this), this.scope);
 	}
-
-	replace(variable: string, value: string, options?: vscode.EnvironmentVariableMutatorOptions | undefined): void {
-		this.collection.replace(variable, value, options, this.scope);
-	}
-
-	append(variable: string, value: string, options?: vscode.EnvironmentVariableMutatorOptions | undefined): void {
-		this.collection.append(variable, value, options, this.scope);
-	}
-
-	prepend(variable: string, value: string, options?: vscode.EnvironmentVariableMutatorOptions | undefined): void {
-		this.collection.prepend(variable, value, options, this.scope);
-	}
-
-	get(variable: string): vscode.EnvironmentVariableMutator | undefined {
-		return this.collection.get(variable, this.scope);
-	}
-
-	forEach(
-		callback: (
-			variable: string,
-			mutator: vscode.EnvironmentVariableMutator,
-			collection: vscode.EnvironmentVariableCollection
-		) => unknown,
-		thisArg?: unknown
-	): void {
-		this.collection
-			.getVariableMap(this.scope)
-			.forEach((value, variable) => callback.call(thisArg, variable, value, this), this.scope);
-	}
-
-	[Symbol.iterator](): IterableIterator<[variable: string, mutator: vscode.EnvironmentVariableMutator]> {
-		return this.collection.getVariableMap(this.scope).entries();
-	}
-
-	delete(variable: string): void {
-		this.collection.delete(variable, this.scope);
-		this._onDidChangeCollection.fire(undefined);
-	}
-
-	clear(): void {
-		this.collection.clear(this.scope);
-	}
-
-	set description(description: string | vscode.MarkdownString | undefined) {
-		this.collection.setDescription(description, this.scope);
-	}
-
-	get description(): string | vscode.MarkdownString | undefined {
-		return this.collection.getDescription(this.scope);
-	}
+	[Symbol.iterator](): IterableIterator<[variable: string, mutator: vscode.EnvironmentVariableMutator]> { return this.collection.getVariableMap(this.scope).entries(); }
+	delete(variable: string): void { this.collection.delete(variable, this.scope); this._onDidChangeCollection.fire(undefined); }
+	clear(): void { this.collection.clear(this.scope); }
+	set description(description: string | vscode.MarkdownString | undefined) { this.collection.setDescription(description, this.scope); }
+	get description(): string | vscode.MarkdownString | undefined { return this.collection.getDescription(this.scope); }
 }
 
 export class WorkerExtHostTerminalService extends BaseExtHostTerminalService {

@@ -108,7 +108,8 @@ import './services/assignment/common/assignmentService.js';
 import './services/outline/browser/outlineService.js';
 import './services/languageDetection/browser/languageDetectionWorkerServiceImpl.js';
 import '../editor/common/services/languageFeaturesService.js';
-import '../editor/common/services/semanticTokensStylingService.js';
+// SideX: removed — semantic tokens disabled (contributions removed in editor.all.ts)
+// import '../editor/common/services/semanticTokensStylingService.js';
 import '../editor/common/services/treeViewsDndService.js';
 import './services/textMate/browser/textMateTokenizationFeature.contribution.js';
 import './services/treeSitter/browser/treeSitter.contribution.js';
