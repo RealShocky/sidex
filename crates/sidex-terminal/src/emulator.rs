@@ -8,6 +8,7 @@ use crate::grid::{Cell, CellAttributes, Color, NamedColor, TerminalGrid};
 
 /// A terminal emulator that feeds PTY output bytes through a VTE parser
 /// and updates the backing grid.
+#[allow(clippy::struct_excessive_bools)]
 pub struct TerminalEmulator {
     grid: TerminalGrid,
     parser: vte::Parser,
@@ -175,7 +176,7 @@ impl Performer<'_> {
             match code {
                 0 => {
                     *self.pen = Cell::default();
-                    self.pen.hyperlink = self.current_hyperlink.clone();
+                    self.pen.hyperlink.clone_from(self.current_hyperlink);
                 }
                 1 => self.pen.attrs |= CellAttributes::BOLD,
                 2 => self.pen.attrs |= CellAttributes::DIM,
@@ -244,7 +245,7 @@ impl Performer<'_> {
                 55 => self.pen.attrs.remove(CellAttributes::OVERLINE),
                 90..=97 => self.pen.fg = Color::Named(named_from_index(u16_to_u8(code - 90 + 8))),
                 100..=107 => {
-                    self.pen.bg = Color::Named(named_from_index(u16_to_u8(code - 100 + 8)))
+                    self.pen.bg = Color::Named(named_from_index(u16_to_u8(code - 100 + 8)));
                 }
                 _ => {}
             }
@@ -304,7 +305,7 @@ impl Performer<'_> {
     }
 
     fn handle_dec_set(&mut self, params: &vte::Params) {
-        for param in params.iter() {
+        for param in params {
             match param[0] {
                 1 => *self.application_cursor_keys = true,
                 6 => *self.origin_mode = true,
@@ -327,7 +328,7 @@ impl Performer<'_> {
     }
 
     fn handle_dec_rst(&mut self, params: &vte::Params) {
-        for param in params.iter() {
+        for param in params {
             match param[0] {
                 1 => *self.application_cursor_keys = false,
                 6 => *self.origin_mode = false,

@@ -6,13 +6,14 @@
 //! download, and response caching.
 
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-/// Default marketplace base URL. Points at the SideX Cloudflare
+/// Default marketplace base URL. Points at the `SideX` Cloudflare
 /// Worker, which merges Microsoft Marketplace + Open VSX and exposes
 /// them under an Open-VSX-compatible `/api/-/search` endpoint so this
 /// client can keep using its existing JSON schema.
@@ -256,7 +257,7 @@ pub struct SearchFilters {
 struct CachedQuery {
     result: SearchResult,
     fetched_at: Instant,
-    /// ETag returned by the upstream (or our Cloudflare Worker). Used
+    /// `ETag` returned by the upstream (or our Cloudflare Worker). Used
     /// for conditional revalidation so stale entries cost a 304
     /// round-trip instead of the full JSON body.
     etag: Option<String>,
@@ -324,13 +325,13 @@ impl MarketplaceClient {
         );
 
         if let Some(ref cat) = filters.category {
-            url.push_str(&format!("&category={cat}"));
+            let _ = write!(url, "&category={cat}");
         }
         if let Some(ref tag) = filters.tag {
-            url.push_str(&format!("&tag={tag}"));
+            let _ = write!(url, "&tag={tag}");
         }
         if let Some(sort) = filters.sort_order {
-            url.push_str(&format!("&sortBy={}", sort.as_query_value()));
+            let _ = write!(url, "&sortBy={}", sort.as_query_value());
         }
 
         let cache_key = url.clone();

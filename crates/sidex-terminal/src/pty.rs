@@ -718,7 +718,7 @@ impl PtyProcess {
     /// Sets an environment variable by writing an `export` command to the shell.
     pub fn set_env(&self, key: &str, value: &str) -> PtyResult<()> {
         let cmd = if cfg!(target_os = "windows") {
-            format!("set {}={}\n", key, value)
+            format!("set {key}={value}\n")
         } else {
             format!("export {}='{}'\n", key, value.replace('\'', "'\"'\"'"))
         };

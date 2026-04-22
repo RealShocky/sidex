@@ -69,6 +69,7 @@ pub struct PortMapping {
 /// Options controlling webview behaviour.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(clippy::struct_excessive_bools)]
 pub struct WebviewOptions {
     /// Allow scripts to run inside the webview.
     #[serde(default)]

@@ -188,7 +188,6 @@ pub fn get_git_timeline(path: &Path, repo_root: &Path) -> WorkspaceResult<Vec<Ti
 
 /// Directory structure for local history:
 ///   `<history_dir>/<sha256_of_path>/<timestamp>.snapshot`
-
 fn history_subdir(path: &Path, history_dir: &Path) -> PathBuf {
     let mut hasher = Sha256::new();
     hasher.update(path.to_string_lossy().as_bytes());
@@ -377,6 +376,7 @@ fn format_local_timestamp(epoch_secs: u64) -> String {
     }
 }
 
+#[allow(clippy::cast_precision_loss)]
 fn format_byte_size(bytes: u64) -> String {
     if bytes < 1024 {
         format!("{bytes} B")

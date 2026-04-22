@@ -243,17 +243,15 @@ impl FileOperationService {
 
         ensure_parent(target)?;
 
-        match std::fs::rename(source, target) {
-            Ok(()) => {}
-            Err(_) => {
-                // Cross-device: copy then delete.
-                std::fs::copy(source, target).map_err(|e| io_err(source, e))?;
-                let meta = std::fs::symlink_metadata(source).map_err(|e| io_err(source, e))?;
-                if meta.is_dir() {
-                    std::fs::remove_dir_all(source).map_err(|e| io_err(source, e))?;
-                } else {
-                    std::fs::remove_file(source).map_err(|e| io_err(source, e))?;
-                }
+        if std::fs::rename(source, target).is_ok() {
+        } else {
+            // Cross-device: copy then delete.
+            std::fs::copy(source, target).map_err(|e| io_err(source, e))?;
+            let meta = std::fs::symlink_metadata(source).map_err(|e| io_err(source, e))?;
+            if meta.is_dir() {
+                std::fs::remove_dir_all(source).map_err(|e| io_err(source, e))?;
+            } else {
+                std::fs::remove_file(source).map_err(|e| io_err(source, e))?;
             }
         }
 
@@ -425,16 +423,16 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> WorkspaceResult<()> {
 /// Move a file or directory to the OS trash.
 ///
 /// On macOS this uses `NSFileManager`-style semantics via a `.Trash`
-/// directory. On Linux it follows the FreeDesktop trash spec. As a
+/// directory. On Linux it follows the `FreeDesktop` trash spec. As a
 /// fallback, the item is moved to `~/.Trash/`.
 fn move_to_trash(path: &Path) -> WorkspaceResult<()> {
     let trash_dir = trash_directory()?;
     std::fs::create_dir_all(&trash_dir).map_err(|e| io_err(&trash_dir, e))?;
 
-    let file_name = path
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
+    let file_name = path.file_name().map_or_else(
+        || "unknown".to_string(),
+        |n| n.to_string_lossy().to_string(),
+    );
 
     let mut target = trash_dir.join(&file_name);
     let mut counter = 1u32;

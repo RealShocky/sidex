@@ -161,6 +161,7 @@ impl SearchEngine {
         Self::search_inner(root, query, options, Some(progress))
     }
 
+    #[allow(clippy::too_many_lines, clippy::needless_pass_by_value)]
     fn search_inner(
         root: &Path,
         query: &SearchQuery,
@@ -448,9 +449,8 @@ impl SearchEngine {
         let mut modified = Vec::new();
 
         for file_rep in replacements {
-            let content = match fs::read_to_string(&file_rep.path) {
-                Ok(c) => c,
-                Err(_) => continue,
+            let Ok(content) = fs::read_to_string(&file_rep.path) else {
+                continue;
             };
             let lines: Vec<&str> = content.lines().collect();
             let mut new_lines: Vec<String> = lines.iter().map(|l| (*l).to_string()).collect();
@@ -458,7 +458,7 @@ impl SearchEngine {
             for edit in &file_rep.edits {
                 let idx = edit.line_number.saturating_sub(1);
                 if idx < new_lines.len() {
-                    new_lines[idx] = edit.replacement.clone();
+                    new_lines[idx].clone_from(&edit.replacement);
                 }
             }
 
@@ -655,6 +655,7 @@ pub struct SearchProgressInfo {
 
 impl SearchProgressInfo {
     /// Returns a fraction (0.0 to 1.0) representing completion.
+    #[allow(clippy::cast_precision_loss)]
     pub fn fraction(&self) -> f32 {
         if self.total_files == 0 {
             0.0
@@ -685,6 +686,7 @@ pub struct ReplaceReport {
 
 impl SearchEngine {
     /// Search with cancellation support.
+    #[allow(clippy::too_many_lines)]
     pub fn search_cancellable(
         root: &Path,
         query: &SearchQuery,
@@ -810,11 +812,12 @@ impl SearchEngine {
     }
 
     /// Search with a detailed progress callback that includes file/match counts.
+    #[allow(clippy::too_many_lines)]
     pub fn search_with_detailed_progress(
         root: &Path,
         query: &SearchQuery,
         options: &SearchOptions,
-        progress: SearchProgressCallback,
+        progress: &SearchProgressCallback,
         token: Option<&CancellationToken>,
     ) -> WorkspaceResult<Vec<SearchResult>> {
         let max_results = options
@@ -824,6 +827,7 @@ impl SearchEngine {
         let max_file_size = options.max_file_size.unwrap_or(DEFAULT_MAX_FILE_SIZE);
         let files = collect_files_with_options(root, options, max_file_size);
 
+        #[allow(clippy::cast_possible_truncation)]
         let total_files = files.len() as u32;
         let files_searched = Arc::new(AtomicUsize::new(0));
         let matches_found = Arc::new(AtomicUsize::new(0));
@@ -902,7 +906,9 @@ impl SearchEngine {
                     }
                 }
 
+                #[allow(clippy::cast_possible_truncation)]
                 let searched = files_searched.fetch_add(1, Ordering::Relaxed) as u32 + 1;
+                #[allow(clippy::cast_possible_truncation)]
                 let found = if local.is_empty() {
                     matches_found.load(Ordering::Relaxed) as u32
                 } else {
@@ -975,7 +981,7 @@ impl SearchEngine {
             for edit in &file_rep.edits {
                 let idx = edit.line_number.saturating_sub(1);
                 if idx < new_lines.len() {
-                    new_lines[idx] = edit.replacement.clone();
+                    new_lines[idx].clone_from(&edit.replacement);
                     edit_count += 1;
                 }
             }
